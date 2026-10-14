@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	CurrentLauncherVersion    = "0.1.0-alpha"
+	CurrentLauncherVersion    = "0.1.1-alpha"
 	DefaultUpdateManifestURL = "https://apps.owlys.io.vn/CamLauncher/releases/latest.json"
 )
 

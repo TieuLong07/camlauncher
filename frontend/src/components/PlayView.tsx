@@ -6,6 +6,7 @@ import { tunnel, models } from '../../wailsjs/go/models';
 import {
   GetServerLiveStatus,
   CheckOfficialServerUpdate,
+  SyncOfficialChillTown,
 } from '../../wailsjs/go/main/App';
 import {
   Shield,
@@ -71,12 +72,26 @@ export const PlayView: React.FC<PlayViewProps> = ({
       const res = await CheckOfficialServerUpdate();
       setUpdateResult(res);
       if (res.hasUpdate) {
-        if (showToast) showToast(`Có bản cập nhật mới (${res.latestVersion}) cho máy chủ!`);
+        if (showToast) showToast(`Có cập nhật Chill Town ${res.latestVersion}. Bấm Đồng Bộ để cài.`);
       } else {
-        if (showToast) showToast('Bản cài đặt Chill Town đã đồng bộ đầy đủ các mod mới nhất (v1.5.1)!');
+        if (showToast) showToast('Chill Town đã đồng bộ với bản modpack chính thức.');
       }
     } catch (err: any) {
       if (showToast) showToast(`Lỗi kiểm tra cập nhật: ${err}`);
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+
+  const handleSyncUpdate = async () => {
+    setCheckingUpdate(true);
+    try {
+      await SyncOfficialChillTown();
+      const refreshed = await CheckOfficialServerUpdate();
+      setUpdateResult(refreshed);
+      if (showToast) showToast('Đã đồng bộ modpack Chill Town. Sẵn sàng vào máy chủ.');
+    } catch (err: any) {
+      if (showToast) showToast(`Lỗi đồng bộ Chill Town: ${err}`);
     } finally {
       setCheckingUpdate(false);
     }
@@ -312,11 +327,22 @@ export const PlayView: React.FC<PlayViewProps> = ({
               onClick={handleCheckUpdate}
               disabled={checkingUpdate}
               className="status-pill px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 bg-white/[0.04] hover:bg-emerald-500/15 text-slate-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/35"
-              title="Kiểm tra đồng bộ modpack và tài nguyên mới nhất từ máy chủ"
+              title="So sánh bản cài với manifest Chill Town trên GitHub"
             >
               <RotateCw className={`w-3.5 h-3.5 text-emerald-400 ${checkingUpdate ? 'animate-spin' : ''}`} />
               <span>{checkingUpdate ? 'Đang Kiểm Tra...' : 'Kiểm Tra Cập Nhật Mod'}</span>
             </button>
+            {(updateResult?.hasUpdate || !updateResult) && (
+              <button
+                onClick={handleSyncUpdate}
+                disabled={checkingUpdate}
+                className="status-pill px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-sm shadow-emerald-500/20"
+                title="Tải hoặc cập nhật bản cài Chill Town chính thức"
+              >
+                <CheckCircle2 className={`w-3.5 h-3.5 ${checkingUpdate ? 'animate-spin' : ''}`} />
+                <span>{checkingUpdate ? 'Đang Đồng Bộ...' : 'Đồng Bộ Chill Town'}</span>
+              </button>
+            )}
           </div>
         </div>
       </section>

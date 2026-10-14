@@ -12,6 +12,7 @@ import (
 	"Aether/pkg/tunnel"
 	"Aether/pkg/updater"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -298,33 +299,99 @@ func (a *App) GetServerLiveStatus() *models.ServerLiveStatus {
 	return minecraft.GetServerLiveStatus()
 }
 
-// CheckOfficialServerUpdate checks if the official Chill Town instance has modpack updates
-func (a *App) CheckOfficialServerUpdate() (*models.UpdateCheckResult, error) {
-	var target *models.Instance
-	for _, inst := range a.store.GetInstances() {
-		n := strings.ToLower(inst.Name)
-		if strings.Contains(n, "chill") || strings.Contains(n, "cooking") {
-			target = &inst
-			break
+const OfficialChillTownManifestURL = "https://raw.githubusercontent.com/TieuLong07/camlauncher/main/manifests/chilltown.json"
+
+// EnsureOfficialChillTown creates or migrates the official Cooking TQ profile,
+// then applies the latest Chill Town modpack before it can launch.
+func (a *App) EnsureOfficialChillTown() (*models.Instance, error) {
+	manifest, err := modsync.FetchServerManifest(OfficialChillTownManifestURL)
+	if err != nil {
+		return nil, fmt.Errorf("không thể tải thông tin Chill Town: %w", err)
+	}
+	if manifest.ID != "chilltown" || manifest.GameVersion != "1.20.1" || !strings.EqualFold(manifest.Loader, "forge") {
+		return nil, fmt.Errorf("manifest Chill Town không hợp lệ")
+	}
+
+	instances := a.store.GetInstances()
+	target := storage.FindOfficialChillTown(instances)
+	if target == nil {
+		id := uuid.New().String()
+		target = &models.Instance{
+			ID:            id,
+			Name:          "Chill Town",
+			GameVersion:   manifest.GameVersion,
+			VersionType:   "release",
+			Loader:        manifest.Loader,
+			LoaderVersion: manifest.LoaderVersion,
+			Icon:          "flask",
+			MinMemoryMB:   manifest.MinMemoryMB,
+			MaxMemoryMB:   manifest.MaxMemoryMB,
+			Path:          a.store.GetUniqueInstancePath("Chill Town", id),
+			ServerSyncURL: OfficialChillTownManifestURL,
+			ServerID:      "chilltown",
+			CreatedAt:     time.Now(),
+			LastPlayed:    time.Now(),
+		}
+		if target.MinMemoryMB <= 0 {
+			target.MinMemoryMB = 2048
+		}
+		if target.MaxMemoryMB <= 0 {
+			target.MaxMemoryMB = 8192
+		}
+
+		// One-time local migration: the previous official profile was called Cooking TQ.
+		legacyPath := filepath.Join(os.Getenv("APPDATA"), "TiCaLauncher", "instances", "Cooking TQ")
+		if info, statErr := os.Stat(legacyPath); statErr == nil && info.IsDir() {
+			if err := storage.CopyChillTownPayload(legacyPath, target.Path); err != nil {
+				return nil, fmt.Errorf("không thể chuyển dữ liệu Cooking TQ sang Chill Town: %w", err)
+			}
+			state, _ := json.Marshal(models.LocalSyncState{ServerID: "chilltown", SyncedVersion: manifest.Version, SyncedAt: time.Now()})
+			if err := os.WriteFile(filepath.Join(target.Path, "sync_state.json"), state, 0644); err != nil {
+				return nil, err
+			}
+		}
+		a.store.AddInstance(*target)
+	} else {
+		// Cooking TQ is the former name. Preserve its files, change only official metadata.
+		target.Name = "Chill Town"
+		target.GameVersion = manifest.GameVersion
+		target.Loader = manifest.Loader
+		target.LoaderVersion = manifest.LoaderVersion
+		target.ServerID = "chilltown"
+		target.ServerSyncURL = OfficialChillTownManifestURL
+		if updated, updateErr := a.store.UpdateInstance(*target); updateErr != nil {
+			return nil, updateErr
+		} else {
+			target = updated
 		}
 	}
 
-	manifestPath := filepath.Join(a.store.LauncherDir, "chilltown_manifest.json")
-	if target != nil && target.Path != "" {
-		if _, err := os.Stat(manifestPath); err == nil {
-			return modsync.CheckServerUpdate(target.Path, "file://"+filepath.ToSlash(manifestPath))
-		}
+	progressCallback := func(evt models.ProgressEvent) { runtime.EventsEmit(a.ctx, "game:progress", evt) }
+	if err := modsync.SyncServerModpack(target.Path, manifest, progressCallback); err != nil {
+		return nil, err
 	}
-
-	return &models.UpdateCheckResult{
-		ServerID:       "chilltown",
-		ServerName:     "Chill Town",
-		CurrentVersion: "v1.5.1",
-		LatestVersion:  "v1.5.1",
-		HasUpdate:      false,
-		Changelog:      "Hệ thống đã đồng bộ toàn bộ 246 mods, cấu hình KubeJS và SDM Shop mới nhất.",
-	}, nil
+	target.ServerVersion = manifest.Version
+	if updated, err := a.store.UpdateInstance(*target); err == nil {
+		target = updated
+	}
+	return target, nil
 }
+
+// CheckOfficialServerUpdate checks the live GitHub manifest against the official profile.
+func (a *App) CheckOfficialServerUpdate() (*models.UpdateCheckResult, error) {
+	target := storage.FindOfficialChillTown(a.store.GetInstances())
+	if target == nil {
+		manifest, err := modsync.FetchServerManifest(OfficialChillTownManifestURL)
+		if err != nil {
+			return nil, err
+		}
+		return &models.UpdateCheckResult{ServerID: manifest.ID, ServerName: manifest.Name, LatestVersion: manifest.Version, HasUpdate: true, Changelog: manifest.Changelog, Manifest: manifest}, nil
+	}
+	return modsync.CheckServerUpdate(target.Path, OfficialChillTownManifestURL)
+}
+
+// SyncOfficialChillTown downloads and applies the current official modpack.
+func (a *App) SyncOfficialChillTown() (*models.Instance, error) { return a.EnsureOfficialChillTown() }
 
 // CheckEnvironmentSetup scans Java installations and evaluates readiness for Chill Town
 func (a *App) CheckEnvironmentSetup() *models.EnvironmentSetupStatus {
@@ -901,5 +968,3 @@ func (a *App) ApplyLauncherUpdate(downloadURL, sha256 string) error {
 	}
 	return updater.ApplyLauncherUpdate(downloadURL, sha256, progressCallback)
 }
-
-

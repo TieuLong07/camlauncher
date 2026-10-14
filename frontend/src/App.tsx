@@ -28,6 +28,8 @@ import {
   SyncCommunityServer,
   CheckLauncherUpdate,
   CreateInstance,
+  EnsureOfficialChillTown,
+  SyncOfficialChillTown,
   GetTunnelStatus,
   StartTunnel,
   StopTunnel,
@@ -108,10 +110,12 @@ export const App: React.FC = () => {
       setInstances(insts || []);
       setCommunityServers(servers || []);
 
-      // If activeInstance is not yet bound, try matching Cooking TQ or first instance
-      if (insts && insts.length > 0 && !activeInstance) {
-        const cookInst = insts.find((i) => i.name.toLowerCase().includes('cooking'));
-        setActiveInstance(cookInst || insts[0]);
+      // Home always binds only the official Chill Town profile, never a personal instance.
+      if (insts && !activeInstance) {
+        const chillTown = insts.find(
+          (i) => i.serverId === 'chilltown' || i.name.toLowerCase().includes('chill town') || i.name.toLowerCase().includes('cooking tq')
+        );
+        if (chillTown) setActiveInstance(chillTown);
       }
     } catch (err) {
       console.error('Failed to load launcher state:', err);
@@ -202,14 +206,12 @@ export const App: React.FC = () => {
     setActiveCategory('recommended');
     setAmbientWallpaper(server.bannerUrl);
 
-    // Auto-bind corresponding local instance if available (e.g. Cooking TQ)
-    const matchedInst = instances.find(
-      (i) =>
-        i.name.toLowerCase().includes(server.id) ||
-        i.name.toLowerCase().includes(server.title.toLowerCase().split(' ')[0])
+    // The only recommended server is Chill Town; never bind a personal profile here.
+    const officialInst = instances.find(
+      (i) => i.serverId === 'chilltown' || i.name.toLowerCase().includes('chill town') || i.name.toLowerCase().includes('cooking tq')
     );
-    if (matchedInst) {
-      setActiveInstance(matchedInst);
+    if (officialInst) {
+      setActiveInstance(officialInst);
     }
 
     setDockData({
@@ -297,7 +299,7 @@ export const App: React.FC = () => {
     }
 
     if (activeCategory === 'recommended') {
-      // Auto-start TiCa Tailscale P2P tunnel if not already running
+      // Auto-start Cam P2P tunnel if not already running
       try {
         const cur = await GetTunnelStatus();
         if (!cur.running) {
@@ -310,38 +312,19 @@ export const App: React.FC = () => {
         console.warn('Auto start tunnel error:', tErr);
       }
 
-      // Find local instance for this server (Chill Town / Cooking TQ)
-      let matched = instances.find(
-        (i) =>
-          i.name.toLowerCase().includes('chill') ||
-          i.name.toLowerCase().includes('cooking') ||
-          i.name.toLowerCase().includes(selectedServer.id) ||
-          i.name.toLowerCase().includes(selectedServer.title.toLowerCase().split(' ')[0])
-      );
-
-      if (!matched && instances.length > 0) {
-        matched = instances[0];
-      }
-
-      if (matched) {
-        await handleLaunchGame(matched);
-      } else {
-        showToast('Đang khởi tạo instance mới...');
-        try {
-          const newInst = await CreateInstance(
-            selectedServer.title,
-            '1.20.1',
-            selectedServer.loader,
-            '',
-            'flask',
-            2048,
-            8192
-          );
-          await refreshData();
-          if (newInst) await handleLaunchGame(newInst);
-        } catch (cErr: any) {
-          showToast(`Lỗi tạo instance: ${cErr}`);
-        }
+      // Recommended Play always installs/migrates and launches Chill Town.
+      // Never fall back to the first personal instance (for example TiCa Boosted).
+      try {
+        setIsSyncing(true);
+        showToast('Đang chuẩn bị Chill Town và kiểm tra modpack chính thức...');
+        const official = await EnsureOfficialChillTown();
+        await refreshData();
+        setActiveInstance(official);
+        await handleLaunchGame(official);
+      } catch (syncErr: any) {
+        showToast(`Không thể chuẩn bị Chill Town: ${syncErr}`);
+      } finally {
+        setIsSyncing(false);
       }
     } else {
       if (activeInstance) {

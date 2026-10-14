@@ -68,16 +68,16 @@ type VersionItem struct {
 
 // Detailed Version JSON from Mojang
 type VersionDetail struct {
-	ID          string                 `json:"id"`
-	Type        string                 `json:"type"`
-	MainClass   string                 `json:"mainClass"`
-	MinecraftArguments string          `json:"minecraftArguments,omitempty"`
-	Arguments   *VersionArguments      `json:"arguments,omitempty"`
-	AssetIndex  AssetIndexInfo         `json:"assetIndex"`
-	Assets      string                 `json:"assets"`
-	Downloads   map[string]DownloadInfo`json:"downloads"`
-	Libraries   []Library              `json:"libraries"`
-	JavaVersion *JavaVersionInfo       `json:"javaVersion,omitempty"`
+	ID                 string                  `json:"id"`
+	Type               string                  `json:"type"`
+	MainClass          string                  `json:"mainClass"`
+	MinecraftArguments string                  `json:"minecraftArguments,omitempty"`
+	Arguments          *VersionArguments       `json:"arguments,omitempty"`
+	AssetIndex         AssetIndexInfo          `json:"assetIndex"`
+	Assets             string                  `json:"assets"`
+	Downloads          map[string]DownloadInfo `json:"downloads"`
+	Libraries          []Library               `json:"libraries"`
+	JavaVersion        *JavaVersionInfo        `json:"javaVersion,omitempty"`
 }
 
 type JavaVersionInfo struct {
@@ -106,12 +106,12 @@ type DownloadInfo struct {
 }
 
 type Library struct {
-	Name      string                 `json:"name"`
-	Downloads *LibraryDownloads      `json:"downloads,omitempty"`
-	Rules     []Rule                 `json:"rules,omitempty"`
-	Natives   map[string]string      `json:"natives,omitempty"`
-	Extract   *ExtractRules          `json:"extract,omitempty"`
-	URL       string                 `json:"url,omitempty"`
+	Name      string            `json:"name"`
+	Downloads *LibraryDownloads `json:"downloads,omitempty"`
+	Rules     []Rule            `json:"rules,omitempty"`
+	Natives   map[string]string `json:"natives,omitempty"`
+	Extract   *ExtractRules     `json:"extract,omitempty"`
+	URL       string            `json:"url,omitempty"`
 }
 
 type LibraryDownloads struct {
@@ -162,13 +162,13 @@ type JavaRuntime struct {
 
 // Hardware & System Stats
 type SystemStats struct {
-	CPUModel      string        `json:"cpuModel"`
-	CPUCores      int           `json:"cpuCores"`
-	TotalRAMMB    int           `json:"totalRamMb"`
-	FreeRAMMB     int           `json:"freeRamMb"`
-	GPUModel      string        `json:"gpuModel"`
-	JavaRuntimes  []JavaRuntime `json:"javaRuntimes"`
-	LauncherDir   string        `json:"launcherDir"`
+	CPUModel     string        `json:"cpuModel"`
+	CPUCores     int           `json:"cpuCores"`
+	TotalRAMMB   int           `json:"totalRamMb"`
+	FreeRAMMB    int           `json:"freeRamMb"`
+	GPUModel     string        `json:"gpuModel"`
+	JavaRuntimes []JavaRuntime `json:"javaRuntimes"`
+	LauncherDir  string        `json:"launcherDir"`
 }
 
 // Launcher Settings
@@ -234,23 +234,31 @@ type ModpackFile struct {
 	Size int64  `json:"size,omitempty"`
 }
 
+// ModpackArchive is an optional complete pack archive for first-time installs.
+type ModpackArchive struct {
+	URL    string `json:"url"`
+	SHA256 string `json:"sha256,omitempty"`
+	Size   int64  `json:"size,omitempty"`
+}
+
 // ServerManifest defines the modpack structure from the server admin
 type ServerManifest struct {
-	ID            string        `json:"id"`
-	Name          string        `json:"name"`
-	Tagline       string        `json:"tagline"`
-	Description   string        `json:"description"`
-	Version       string        `json:"version"`     // e.g. "1.2.0"
-	Changelog     string        `json:"changelog"`   // notes about this update
-	GameVersion   string        `json:"gameVersion"` // e.g. "1.20.1"
-	Loader        string        `json:"loader"`      // "fabric"
-	LoaderVersion string        `json:"loaderVersion,omitempty"`
-	ServerIP      string        `json:"serverIp,omitempty"`
-	ServerPort    int           `json:"serverPort,omitempty"`
-	BannerURL     string        `json:"bannerUrl,omitempty"`
-	MinMemoryMB   int           `json:"minMemoryMb,omitempty"`
-	MaxMemoryMB   int           `json:"maxMemoryMb,omitempty"`
-	Files         []ModpackFile `json:"files"`
+	ID            string          `json:"id"`
+	Name          string          `json:"name"`
+	Tagline       string          `json:"tagline"`
+	Description   string          `json:"description"`
+	Version       string          `json:"version"`     // e.g. "1.2.0"
+	Changelog     string          `json:"changelog"`   // notes about this update
+	GameVersion   string          `json:"gameVersion"` // e.g. "1.20.1"
+	Loader        string          `json:"loader"`      // "fabric"
+	LoaderVersion string          `json:"loaderVersion,omitempty"`
+	ServerIP      string          `json:"serverIp,omitempty"`
+	ServerPort    int             `json:"serverPort,omitempty"`
+	BannerURL     string          `json:"bannerUrl,omitempty"`
+	MinMemoryMB   int             `json:"minMemoryMb,omitempty"`
+	MaxMemoryMB   int             `json:"maxMemoryMb,omitempty"`
+	Archive       *ModpackArchive `json:"archive,omitempty"`
+	Files         []ModpackFile   `json:"files"`
 }
 
 // CommunityServerEntry is stored in the launcher's list of community servers
@@ -317,5 +325,3 @@ type InstanceFileItem struct {
 	Enabled   bool   `json:"enabled"`
 	FileType  string `json:"fileType"` // "mods", "resourcepacks", "shaderpacks"
 }
-
-

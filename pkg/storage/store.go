@@ -5,6 +5,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -836,6 +838,84 @@ func extractLoaderVersion(raw, loaderType string) string {
 	return ""
 }
 
+// CopyDirectory copies a modpack tree without following symlinks.
+func CopyDirectory(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0755)
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			return fmt.Errorf("không hỗ trợ symbolic link trong modpack: %s", rel)
+		}
+		in, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer in.Close()
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			return err
+		}
+		out, err := os.OpenFile(target, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
+		if err != nil {
+			return err
+		}
+		_, copyErr := io.Copy(out, in)
+		closeErr := out.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+		return closeErr
+	})
+}
+
+// CopyChillTownPayload migrates server-owned Cooking TQ content without carrying worlds or player options.
+func CopyChillTownPayload(src, dst string) error {
+	for _, name := range []string{"mods", "config", "defaultconfigs", "kubejs", "resourcepacks", "shaderpacks", "tlm_custom_pack", "CustomSkinLoader", "customnpcs", "patchouli_books", "patchouli_data.json", "fancymenu_data", "modernfix", "moonlight-global-datapacks", "skyblockbuilder", "emberstextapi", "hotai", "PCL", "building_blueprints", "minecraftinstance.json"} {
+		source := filepath.Join(src, name)
+		if _, err := os.Stat(source); os.IsNotExist(err) {
+			continue
+		} else if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, name)
+		if err := CopyDirectory(source, target); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// FindOfficialChillTown resolves the official profile before any personal instance.
+// It accepts the former Cooking TQ name so existing players migrate without reinstalling.
+func FindOfficialChillTown(instances []models.Instance) *models.Instance {
+	for i := range instances {
+		if strings.EqualFold(instances[i].ServerID, "chilltown") {
+			inst := instances[i]
+			return &inst
+		}
+	}
+	for i := range instances {
+		name := strings.ToLower(instances[i].Name)
+		if strings.Contains(name, "chill town") || strings.Contains(name, "cooking tq") {
+			inst := instances[i]
+			return &inst
+		}
+	}
+	return nil
+}
+
 // Instance methods
 func (s *Store) GetInstances() []models.Instance {
 	s.ScanUnregisteredInstances()
@@ -1040,19 +1120,19 @@ func createSampleServerManifest(filePath string) {
 	}
 
 	manifest := models.ServerManifest{
-		ID:          "tica-battle-royale",
-		Name:        "TiCa Battle Royale",
-		Tagline:     "Chế độ nhảy dù, bắn súng 3D và bo thu kịch tính",
-		Description: "Máy chủ Battle Royale chính thức của cộng đồng TiCa. Tích hợp súng 3D, xe cộ, giáp chống đạn và bản đồ sinh tồn mở rộng.",
-		Version:     "1.0.0",
-		Changelog:   "Khởi động Mùa giải S1! Cập nhật đầy đủ súng trường, scope ngắm và tối ưu hóa giật lag.",
-		GameVersion: "1.20.1",
-		Loader:      "fabric",
+		ID:            "tica-battle-royale",
+		Name:          "TiCa Battle Royale",
+		Tagline:       "Chế độ nhảy dù, bắn súng 3D và bo thu kịch tính",
+		Description:   "Máy chủ Battle Royale chính thức của cộng đồng TiCa. Tích hợp súng 3D, xe cộ, giáp chống đạn và bản đồ sinh tồn mở rộng.",
+		Version:       "1.0.0",
+		Changelog:     "Khởi động Mùa giải S1! Cập nhật đầy đủ súng trường, scope ngắm và tối ưu hóa giật lag.",
+		GameVersion:   "1.20.1",
+		Loader:        "fabric",
 		LoaderVersion: "0.16.5",
-		ServerIP:    "127.0.0.1",
-		ServerPort:  25565,
-		MinMemoryMB: 2048,
-		MaxMemoryMB: 4096,
+		ServerIP:      "127.0.0.1",
+		ServerPort:    25565,
+		MinMemoryMB:   2048,
+		MaxMemoryMB:   4096,
 		Files: []models.ModpackFile{
 			{
 				Path: "mods/sodium-fabric-0.5.11+mc1.20.1.jar",

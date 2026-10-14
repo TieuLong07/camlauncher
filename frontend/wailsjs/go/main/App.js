@@ -58,6 +58,10 @@ export function DeleteInstanceFile(arg1, arg2, arg3) {
   return window['go']['main']['App']['DeleteInstanceFile'](arg1, arg2, arg3);
 }
 
+export function EnsureOfficialChillTown() {
+  return window['go']['main']['App']['EnsureOfficialChillTown']();
+}
+
 export function GetAccounts() {
   return window['go']['main']['App']['GetAccounts']();
 }
@@ -192,6 +196,10 @@ export function StopTunnel() {
 
 export function SyncCommunityServer(arg1) {
   return window['go']['main']['App']['SyncCommunityServer'](arg1);
+}
+
+export function SyncOfficialChillTown() {
+  return window['go']['main']['App']['SyncOfficialChillTown']();
 }
 
 export function ToggleInstanceFile(arg1, arg2, arg3, arg4) {

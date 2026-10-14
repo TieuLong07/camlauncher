@@ -4,6 +4,7 @@ import (
 	"Aether/pkg/minecraft"
 	"Aether/pkg/models"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -143,12 +144,27 @@ func SyncServerModpack(
 
 	_ = os.MkdirAll(instancePath, 0755)
 
-	// Step 1: Check update details
+	// Step 1: Read the previous sync state before deciding whether the official archive changed.
 	syncStateFile := filepath.Join(instancePath, "sync_state.json")
 	var localState models.LocalSyncState
 	if data, err := os.ReadFile(syncStateFile); err == nil {
 		_ = json.Unmarshal(data, &localState)
 	}
+
+	// A full official archive is used for first installs and version upgrades.
+	// It replaces only server-owned folders, never saves, screenshots, options, or player files.
+	if manifest.Archive != nil && manifest.Archive.URL != "" && localState.SyncedVersion != manifest.Version {
+		if localState.SyncedVersion != "" {
+			if err := clearArchiveManagedPaths(instancePath); err != nil {
+				return err
+			}
+		}
+		if err := installArchive(instancePath, manifest.Archive); err != nil {
+			return err
+		}
+	}
+
+	// Step 2: Apply file-level updates when the manifest includes them.
 
 	var tasks []minecraft.DownloadTask
 	var newManagedFiles []string
@@ -225,6 +241,78 @@ func SyncServerModpack(
 	}
 
 	return nil
+}
+
+func clearArchiveManagedPaths(instancePath string) error {
+	for _, name := range []string{"mods", "config", "defaultconfigs", "kubejs", "resourcepacks", "shaderpacks", "tlm_custom_pack", "CustomSkinLoader", "customnpcs", "patchouli_books", "patchouli_data.json", "fancymenu_data", "modernfix", "moonlight-global-datapacks", "skyblockbuilder"} {
+		if err := os.RemoveAll(filepath.Join(instancePath, name)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func installArchive(instancePath string, archive *models.ModpackArchive) error {
+	if strings.HasPrefix(archive.URL, "file://") {
+		path := strings.TrimPrefix(archive.URL, "file://")
+		if archive.SHA256 != "" && !verifySHA256(path, archive.SHA256) {
+			return fmt.Errorf("gói modpack chính thức có SHA-256 không khớp")
+		}
+		if err := ExtractArchive(path, instancePath); err != nil {
+			return fmt.Errorf("không thể giải nén gói modpack: %w", err)
+		}
+		return nil
+	}
+
+	tmpFile, err := os.CreateTemp("", "camlauncher-modpack-*.zip")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmpFile.Name()
+	_ = tmpFile.Close()
+	defer os.Remove(tmpPath)
+
+	client := &http.Client{Timeout: 15 * time.Minute}
+	resp, err := client.Get(archive.URL)
+	if err != nil {
+		return fmt.Errorf("không thể tải gói modpack: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("máy chủ gói modpack trả HTTP %d", resp.StatusCode)
+	}
+	out, err := os.Create(tmpPath)
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(out, resp.Body)
+	closeErr := out.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if archive.SHA256 != "" && !verifySHA256(tmpPath, archive.SHA256) {
+		return fmt.Errorf("gói modpack chính thức có SHA-256 không khớp")
+	}
+	if err := ExtractArchive(tmpPath, instancePath); err != nil {
+		return fmt.Errorf("không thể giải nén gói modpack: %w", err)
+	}
+	return nil
+}
+
+func verifySHA256(path, expected string) bool {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return false
+	}
+	return strings.EqualFold(hex.EncodeToString(h.Sum(nil)), expected)
 }
 
 func isProtectedPlayerFile(relPath string) bool {

@@ -6,6 +6,7 @@ frontend/dist/
 *.tmp
 *.log
 *.jar
+releases/
 NUL
 .env
 .env.*

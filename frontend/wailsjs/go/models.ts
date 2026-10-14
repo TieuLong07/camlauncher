@@ -343,6 +343,22 @@ export namespace models {
 	        this.versions = source["versions"];
 	    }
 	}
+	export class ModpackArchive {
+	    url: string;
+	    sha256?: string;
+	    size?: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ModpackArchive(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.url = source["url"];
+	        this.sha256 = source["sha256"];
+	        this.size = source["size"];
+	    }
+	}
 	export class ModpackFile {
 	    path: string;
 	    url: string;
@@ -470,6 +486,7 @@ export namespace models {
 	    bannerUrl?: string;
 	    minMemoryMb?: number;
 	    maxMemoryMb?: number;
+	    archive?: ModpackArchive;
 	    files: ModpackFile[];
 	
 	    static createFrom(source: any = {}) {
@@ -492,6 +509,7 @@ export namespace models {
 	        this.bannerUrl = source["bannerUrl"];
 	        this.minMemoryMb = source["minMemoryMb"];
 	        this.maxMemoryMb = source["maxMemoryMb"];
+	        this.archive = this.convertValues(source["archive"], ModpackArchive);
 	        this.files = this.convertValues(source["files"], ModpackFile);
 	    }
 	

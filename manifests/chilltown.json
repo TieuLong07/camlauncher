@@ -1,0 +1,21 @@
+{
+  "id": "chilltown",
+  "name": "Chill Town",
+  "tagline": "Ẩm thực, nông nghiệp và cơ giới hóa",
+  "description": "Modpack chính thức của máy chủ Chill Town.",
+  "version": "0.1.1-alpha",
+  "changelog": "Bản phát hành đầu tiên của modpack Chill Town trên CamLauncher.",
+  "gameVersion": "1.20.1",
+  "loader": "forge",
+  "loaderVersion": "47.4.10",
+  "serverIp": "127.0.0.1",
+  "serverPort": 25565,
+  "minMemoryMb": 2048,
+  "maxMemoryMb": 8192,
+  "archive": {
+    "url": "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.1-alpha/ChillTown-0.1.1.zip",
+    "sha256": "8be25173e4f3d8e70139c800a23b0590b5535d8701fdd153b6deb35cfca244e4",
+    "size": 771720603
+  },
+  "files": []
+}

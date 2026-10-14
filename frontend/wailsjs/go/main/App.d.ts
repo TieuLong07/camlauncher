@@ -32,6 +32,8 @@ export function DeleteInstance(arg1:string):Promise<void>;
 
 export function DeleteInstanceFile(arg1:string,arg2:string,arg3:string):Promise<void>;
 
+export function EnsureOfficialChillTown():Promise<models.Instance>;
+
 export function GetAccounts():Promise<Array<models.Account>>;
 
 export function GetActiveAccount():Promise<models.Account>;
@@ -99,6 +101,8 @@ export function StartTunnel():Promise<tunnel.TunnelStatus>;
 export function StopTunnel():Promise<tunnel.TunnelStatus>;
 
 export function SyncCommunityServer(arg1:string):Promise<void>;
+
+export function SyncOfficialChillTown():Promise<models.Instance>;
 
 export function ToggleInstanceFile(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<void>;
 

@@ -13,7 +13,11 @@
   "minMemoryMb": 2048,
   "maxMemoryMb": 8192,
   "archive": {
-    "url": "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.3-alpha/ChillTown-Full-0.1.3.zip",
+    "urls": [
+      "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.3-alpha/ChillTown-Full-0.1.3.zip.part01",
+      "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.3-alpha/ChillTown-Full-0.1.3.zip.part02",
+      "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.3-alpha/ChillTown-Full-0.1.3.zip.part03"
+    ],
     "sha256": "bdc015e6d5f3fb3311686178a625e9a9b07d0023c151b78954a66486cb9a4f93",
     "size": 4395530402
   },

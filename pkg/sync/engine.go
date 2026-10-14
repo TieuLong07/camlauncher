@@ -153,7 +153,7 @@ func SyncServerModpack(
 
 	// A full official archive is used for first installs and version upgrades.
 	// It replaces only server-owned folders, never saves, screenshots, options, or player files.
-	if manifest.Archive != nil && manifest.Archive.URL != "" && !localState.LegacyMigrated && localState.SyncedVersion != manifest.Version {
+	if manifest.Archive != nil && (manifest.Archive.URL != "" || len(manifest.Archive.URLs) > 0) && !localState.LegacyMigrated && localState.SyncedVersion != manifest.Version {
 		if localState.SyncedVersion != "" {
 			if err := clearArchiveManagedPaths(instancePath); err != nil {
 				return err
@@ -245,7 +245,7 @@ func SyncServerModpack(
 }
 
 func clearArchiveManagedPaths(instancePath string) error {
-	for _, name := range []string{"mods", "config", "defaultconfigs", "kubejs", "resourcepacks", "shaderpacks", "tlm_custom_pack", "CustomSkinLoader", "customnpcs", "patchouli_books", "patchouli_data.json", "fancymenu_data", "modernfix", "moonlight-global-datapacks", "skyblockbuilder", "xaero", "schematics", "building_blueprints", "PCL", "hotai", "emberstextapi", "fieldguide_cache", "local"} {
+	for _, name := range []string{"mods", "config", "defaultconfigs", "kubejs", "resourcepacks", "shaderpacks", "tlm_custom_pack", "CustomSkinLoader", "customnpcs", "patchouli_books", "patchouli_data.json", "fancymenu_data", "modernfix", "moonlight-global-datapacks", "skyblockbuilder", "xaero", "schematics", "building_blueprints", "PCL", "hotai", "emberstextapi", "fieldguide_cache", "local", "saves"} {
 		if err := os.RemoveAll(filepath.Join(instancePath, name)); err != nil {
 			return err
 		}

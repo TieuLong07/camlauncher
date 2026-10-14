@@ -3,8 +3,8 @@
   "name": "Chill Town",
   "tagline": "Ẩm thực, nông nghiệp và cơ giới hóa",
   "description": "Modpack chính thức của máy chủ Chill Town.",
-  "version": "0.1.3-alpha",
-  "changelog": "Đồng bộ nguyên instance Cooking TQ sang Chill Town, giữ world, settings, keybind, resource pack, shader và config.",
+  "version": "0.1.4-alpha",
+  "changelog": "Đồng bộ Cooking TQ sang Chill Town, giữ settings, keybind, resource pack, shader và config; không mang local saves vì world chạy trên server.",
   "gameVersion": "1.20.1",
   "loader": "forge",
   "loaderVersion": "47.4.10",
@@ -13,13 +13,9 @@
   "minMemoryMb": 2048,
   "maxMemoryMb": 8192,
   "archive": {
-    "urls": [
-      "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.3-alpha/ChillTown-Full-0.1.3.zip.part01",
-      "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.3-alpha/ChillTown-Full-0.1.3.zip.part02",
-      "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.3-alpha/ChillTown-Full-0.1.3.zip.part03"
-    ],
-    "sha256": "bdc015e6d5f3fb3311686178a625e9a9b07d0023c151b78954a66486cb9a4f93",
-    "size": 4395530402
+    "url": "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.4-alpha/ChillTown-0.1.4.zip",
+    "sha256": "94a834ee20b3574f635c9639400c5535f2077158a6520f7d9253ad72940bac26",
+    "size": 885434464
   },
   "files": []
 }

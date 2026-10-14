@@ -817,7 +817,12 @@ func (s *Store) standardizeInstanceFolder(folderPath string, inst models.Instanc
 	_ = os.MkdirAll(filepath.Join(folderPath, "mods"), 0755)
 	_ = os.MkdirAll(filepath.Join(folderPath, "resourcepacks"), 0755)
 	_ = os.MkdirAll(filepath.Join(folderPath, "shaderpacks"), 0755)
-	_ = os.MkdirAll(filepath.Join(folderPath, "saves"), 0755)
+	if strings.EqualFold(inst.ServerID, "chilltown") {
+		// Chill Town uses the server world; never retain local single-player saves.
+		_ = os.RemoveAll(filepath.Join(folderPath, "saves"))
+	} else {
+		_ = os.MkdirAll(filepath.Join(folderPath, "saves"), 0755)
+	}
 	_ = os.MkdirAll(filepath.Join(folderPath, "config"), 0755)
 
 	metaPath := filepath.Join(folderPath, "ticalauncher_instance.json")
@@ -847,6 +852,12 @@ func CopyDirectory(src, dst string) error {
 		rel, err := filepath.Rel(src, path)
 		if err != nil {
 			return err
+		}
+		if rel == "saves" || strings.HasPrefix(rel, "saves"+string(os.PathSeparator)) {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		target := filepath.Join(dst, rel)
 		if entry.IsDir() {
@@ -880,7 +891,12 @@ func CopyDirectory(src, dst string) error {
 	})
 }
 
-// RenameDirectory renames a complete instance in-place, preserving every customized file.
+// RemoveLocalWorldSaves removes client-side worlds because Chill Town uses the server world.
+func RemoveLocalWorldSaves(instancePath string) error {
+	return os.RemoveAll(filepath.Join(instancePath, "saves"))
+}
+
+// RenameDirectory renames a complete instance in-place, preserving every customized file except saves.
 func RenameDirectory(src, dst string) error {
 	if filepath.Clean(src) == filepath.Clean(dst) {
 		return nil
@@ -906,6 +922,11 @@ func RenameDirectory(src, dst string) error {
 		_ = os.RemoveAll(dst)
 		return err
 	}
+	// saves are intentionally excluded from the copied instance and are not checked.
+	if err := RemoveLocalWorldSaves(dst); err != nil {
+		_ = os.RemoveAll(dst)
+		return err
+	}
 	return os.RemoveAll(src)
 }
 
@@ -914,6 +935,16 @@ func verifyDirectoryContents(src, dst string) error {
 	if err := filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		if rel == "saves" || strings.HasPrefix(rel, "saves"+string(os.PathSeparator)) {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if entry.IsDir() {
 			return nil
@@ -925,7 +956,7 @@ func verifyDirectoryContents(src, dst string) error {
 		if err != nil {
 			return err
 		}
-		rel, err := filepath.Rel(src, path)
+		rel, err = filepath.Rel(src, path)
 		if err != nil {
 			return err
 		}

@@ -1,8 +1,8 @@
 {
-  "latestVersion": "0.1.3-alpha",
-  "title": "CamLauncher Alpha 0.1.3",
-  "changelog": "Chill Town dùng nguyên instance Cooking TQ: world, settings, keybind, resource pack, shader và config được giữ nguyên.",
-  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.3-alpha/CamLauncher.exe",
+  "latestVersion": "0.1.4-alpha",
+  "title": "CamLauncher Alpha 0.1.4",
+  "changelog": "Chill Town giữ settings, keybind, resource pack, shader và config; local saves bị loại vì world chạy trên server.",
+  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.4-alpha/CamLauncher.exe",
   "releaseDate": "2026-10-14",
-  "sha256": "fb61bac8f180953d7f800520d4d3cc6e5627e62ed7238c3433f5af060cef2b31"
+  "sha256": "9a0b0485e839815e9cc2473c5172c077bcd2d1022c354a06d107f9f25eccfe68"
 }

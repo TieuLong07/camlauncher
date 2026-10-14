@@ -20,8 +20,8 @@ func TestRenameDirectoryMovesEntireInstance(t *testing.T) {
 	if err := RenameDirectory(src, dst); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(dst, "saves", "world", "level.dat")); err != nil {
-		t.Fatalf("renamed instance lost content: %v", err)
+	if _, err := os.Stat(filepath.Join(dst, "saves")); !os.IsNotExist(err) {
+		t.Fatal("server world saves must not be migrated")
 	}
 	if _, err := os.Stat(src); !os.IsNotExist(err) {
 		t.Fatal("legacy instance directory still exists")
@@ -40,6 +40,9 @@ func TestMigrateLegacyInstancePreservesPartialBackupAndMovesFullSource(t *testin
 	if err := os.WriteFile(filepath.Join(legacy, "saves", "world", "level.dat"), []byte("full-custom-instance"), 0644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(legacy, "options.txt"), []byte("custom-settings"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.MkdirAll(target, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -51,8 +54,11 @@ func TestMigrateLegacyInstancePreservesPartialBackupAndMovesFullSource(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(target, "saves", "world", "level.dat")); err != nil {
-		t.Fatalf("full legacy instance did not replace target: %v", err)
+	if _, err := os.Stat(filepath.Join(target, "saves")); !os.IsNotExist(err) {
+		t.Fatal("server world saves must not be migrated")
+	}
+	if _, err := os.Stat(filepath.Join(target, "options.txt")); err != nil {
+		t.Fatalf("custom settings did not migrate: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(backup, "partial.txt")); err != nil {
 		t.Fatalf("partial target was not preserved as backup: %v", err)

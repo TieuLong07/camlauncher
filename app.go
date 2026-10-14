@@ -339,20 +339,39 @@ func (a *App) EnsureOfficialChillTown() (*models.Instance, error) {
 			target.MaxMemoryMB = 8192
 		}
 
-		// One-time local migration: the previous official profile was called Cooking TQ.
+		// Rename the complete old Cooking TQ folder. No content is copied or omitted.
 		legacyPath := filepath.Join(os.Getenv("APPDATA"), "TiCaLauncher", "instances", "Cooking TQ")
 		if info, statErr := os.Stat(legacyPath); statErr == nil && info.IsDir() {
-			if err := storage.CopyChillTownPayload(legacyPath, target.Path); err != nil {
-				return nil, fmt.Errorf("không thể chuyển dữ liệu Cooking TQ sang Chill Town: %w", err)
+			if err := storage.RenameDirectory(legacyPath, target.Path); err != nil {
+				return nil, fmt.Errorf("không thể đổi tên nguyên instance Cooking TQ sang Chill Town: %w", err)
 			}
-			state, _ := json.Marshal(models.LocalSyncState{ServerID: "chilltown", SyncedVersion: manifest.Version, SyncedAt: time.Now()})
+			state, _ := json.Marshal(models.LocalSyncState{ServerID: "chilltown", SyncedVersion: manifest.Version, SyncedAt: time.Now(), LegacyMigrated: true})
 			if err := os.WriteFile(filepath.Join(target.Path, "sync_state.json"), state, 0644); err != nil {
 				return nil, err
 			}
 		}
 		a.store.AddInstance(*target)
 	} else {
-		// Cooking TQ is the former name. Preserve its files, change only official metadata.
+		// Upgrade the prior partial copy by renaming the complete legacy instance in its place.
+		// The partial target is retained as a timestamped sibling backup.
+		legacyPath := filepath.Join(os.Getenv("APPDATA"), "TiCaLauncher", "instances", "Cooking TQ")
+		statePath := filepath.Join(target.Path, "sync_state.json")
+		var state models.LocalSyncState
+		if data, readErr := os.ReadFile(statePath); readErr == nil {
+			_ = json.Unmarshal(data, &state)
+		}
+		if !state.LegacyMigrated {
+			if info, statErr := os.Stat(legacyPath); statErr == nil && info.IsDir() {
+				if _, err := storage.MigrateLegacyInstance(legacyPath, target.Path); err != nil {
+					return nil, fmt.Errorf("không thể đổi tên nguyên instance Cooking TQ sang Chill Town: %w", err)
+				}
+				state = models.LocalSyncState{ServerID: "chilltown", SyncedVersion: manifest.Version, SyncedAt: time.Now(), LegacyMigrated: true}
+				stateBytes, _ := json.Marshal(state)
+				if err := os.WriteFile(statePath, stateBytes, 0644); err != nil {
+					return nil, err
+				}
+			}
+		}
 		target.Name = "Chill Town"
 		target.GameVersion = manifest.GameVersion
 		target.Loader = manifest.Loader

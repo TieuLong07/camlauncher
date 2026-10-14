@@ -153,7 +153,7 @@ func SyncServerModpack(
 
 	// A full official archive is used for first installs and version upgrades.
 	// It replaces only server-owned folders, never saves, screenshots, options, or player files.
-	if manifest.Archive != nil && manifest.Archive.URL != "" && localState.SyncedVersion != manifest.Version {
+	if manifest.Archive != nil && manifest.Archive.URL != "" && !localState.LegacyMigrated && localState.SyncedVersion != manifest.Version {
 		if localState.SyncedVersion != "" {
 			if err := clearArchiveManagedPaths(instancePath); err != nil {
 				return err
@@ -222,10 +222,11 @@ func SyncServerModpack(
 
 	// Step 4: Save updated sync_state.json
 	newState := models.LocalSyncState{
-		ServerID:      manifest.ID,
-		SyncedVersion: manifest.Version,
-		SyncedAt:      time.Now(),
-		ManagedFiles:  newManagedFiles,
+		ServerID:       manifest.ID,
+		SyncedVersion:  manifest.Version,
+		SyncedAt:       time.Now(),
+		ManagedFiles:   newManagedFiles,
+		LegacyMigrated: localState.LegacyMigrated,
 	}
 
 	stateBytes, _ := json.MarshalIndent(newState, "", "  ")
@@ -244,7 +245,7 @@ func SyncServerModpack(
 }
 
 func clearArchiveManagedPaths(instancePath string) error {
-	for _, name := range []string{"mods", "config", "defaultconfigs", "kubejs", "resourcepacks", "shaderpacks", "tlm_custom_pack", "CustomSkinLoader", "customnpcs", "patchouli_books", "patchouli_data.json", "fancymenu_data", "modernfix", "moonlight-global-datapacks", "skyblockbuilder"} {
+	for _, name := range []string{"mods", "config", "defaultconfigs", "kubejs", "resourcepacks", "shaderpacks", "tlm_custom_pack", "CustomSkinLoader", "customnpcs", "patchouli_books", "patchouli_data.json", "fancymenu_data", "modernfix", "moonlight-global-datapacks", "skyblockbuilder", "xaero", "schematics", "building_blueprints", "PCL", "hotai", "emberstextapi", "fieldguide_cache", "local"} {
 		if err := os.RemoveAll(filepath.Join(instancePath, name)); err != nil {
 			return err
 		}
@@ -264,6 +265,14 @@ func installArchive(instancePath string, archive *models.ModpackArchive) error {
 		return nil
 	}
 
+	urls := archive.URLs
+	if len(urls) == 0 && archive.URL != "" {
+		urls = []string{archive.URL}
+	}
+	if len(urls) == 0 {
+		return fmt.Errorf("gói modpack không có URL")
+	}
+
 	tmpFile, err := os.CreateTemp("", "camlauncher-modpack-*.zip")
 	if err != nil {
 		return err
@@ -273,25 +282,36 @@ func installArchive(instancePath string, archive *models.ModpackArchive) error {
 	defer os.Remove(tmpPath)
 
 	client := &http.Client{Timeout: 15 * time.Minute}
-	resp, err := client.Get(archive.URL)
-	if err != nil {
-		return fmt.Errorf("không thể tải gói modpack: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("máy chủ gói modpack trả HTTP %d", resp.StatusCode)
-	}
-	out, err := os.Create(tmpPath)
+	out, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
-	_, copyErr := io.Copy(out, resp.Body)
-	closeErr := out.Close()
-	if copyErr != nil {
-		return copyErr
+	for index, url := range urls {
+		req, reqErr := http.NewRequest("GET", url, nil)
+		if reqErr != nil {
+			_ = out.Close()
+			return reqErr
+		}
+		req.Header.Set("User-Agent", "CamLauncher/0.1.2-alpha (ModpackSync)")
+		resp, getErr := client.Do(req)
+		if getErr != nil {
+			_ = out.Close()
+			return fmt.Errorf("không thể tải phần %d của gói modpack: %w", index+1, getErr)
+		}
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			_ = out.Close()
+			return fmt.Errorf("máy chủ gói modpack trả HTTP %d ở phần %d", resp.StatusCode, index+1)
+		}
+		_, copyErr := io.Copy(out, resp.Body)
+		_ = resp.Body.Close()
+		if copyErr != nil {
+			_ = out.Close()
+			return copyErr
+		}
 	}
-	if closeErr != nil {
-		return closeErr
+	if err := out.Close(); err != nil {
+		return err
 	}
 	if archive.SHA256 != "" && !verifySHA256(tmpPath, archive.SHA256) {
 		return fmt.Errorf("gói modpack chính thức có SHA-256 không khớp")

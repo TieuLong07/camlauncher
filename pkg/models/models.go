@@ -236,9 +236,10 @@ type ModpackFile struct {
 
 // ModpackArchive is an optional complete pack archive for first-time installs.
 type ModpackArchive struct {
-	URL    string `json:"url"`
-	SHA256 string `json:"sha256,omitempty"`
-	Size   int64  `json:"size,omitempty"`
+	URL    string   `json:"url,omitempty"`
+	URLs   []string `json:"urls,omitempty"` // split archive parts, in order
+	SHA256 string   `json:"sha256,omitempty"`
+	Size   int64    `json:"size,omitempty"`
 }
 
 // ServerManifest defines the modpack structure from the server admin
@@ -298,10 +299,11 @@ type UpdateCheckResult struct {
 
 // LocalSyncState tracks what files are currently managed for this instance
 type LocalSyncState struct {
-	ServerID      string    `json:"serverId"`
-	SyncedVersion string    `json:"syncedVersion"`
-	SyncedAt      time.Time `json:"syncedAt"`
-	ManagedFiles  []string  `json:"managedFiles"` // relative paths e.g. ["mods/a.jar", "mods/b.jar"]
+	ServerID       string    `json:"serverId"`
+	SyncedVersion  string    `json:"syncedVersion"`
+	SyncedAt       time.Time `json:"syncedAt"`
+	ManagedFiles   []string  `json:"managedFiles"` // relative paths e.g. ["mods/a.jar", "mods/b.jar"]
+	LegacyMigrated bool      `json:"legacyMigrated,omitempty"`
 }
 
 // LauncherUpdateInfo stores update metadata for the CamLauncher binary itself

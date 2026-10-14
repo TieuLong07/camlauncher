@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	CurrentLauncherVersion    = "0.1.2-alpha"
+	CurrentLauncherVersion   = "0.1.3-alpha"
 	DefaultUpdateManifestURL = "https://raw.githubusercontent.com/TieuLong07/camlauncher/main/manifests/launcher.json"
 )
 

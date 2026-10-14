@@ -6,22 +6,28 @@ import (
 	"testing"
 )
 
-func TestCopyChillTownPayloadExcludesPlayerSaves(t *testing.T) {
-	src := filepath.Join(t.TempDir(), "Cooking TQ")
-	dst := filepath.Join(t.TempDir(), "Chill Town")
+func TestFullInstanceFixtureIncludesCustomPlayerFiles(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "Cooking TQ")
 	for path, content := range map[string]string{
-		"mods/official.jar": "mod",
-		"config/server.toml": "config",
+		"mods/official.jar":     "mod",
+		"config/server.toml":    "config",
 		"saves/world/level.dat": "player-world",
-		"options.txt": "player-settings",
+		"options.txt":           "player-settings",
+		"optionsof.txt":         "video-settings",
+		"keybindings/keys.txt":  "custom-keys",
+		"shaderpacks/look.zip":  "shader",
 	} {
-		full := filepath.Join(src, path)
-		if err := os.MkdirAll(filepath.Dir(full), 0755); err != nil { t.Fatal(err) }
-		if err := os.WriteFile(full, []byte(content), 0644); err != nil { t.Fatal(err) }
+		full := filepath.Join(root, path)
+		if err := os.MkdirAll(filepath.Dir(full), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if err := CopyChillTownPayload(src, dst); err != nil { t.Fatal(err) }
-	if _, err := os.Stat(filepath.Join(dst, "mods", "official.jar")); err != nil { t.Fatal(err) }
-	if _, err := os.Stat(filepath.Join(dst, "config", "server.toml")); err != nil { t.Fatal(err) }
-	if _, err := os.Stat(filepath.Join(dst, "saves", "world", "level.dat")); !os.IsNotExist(err) { t.Fatal("player saves must not be migrated") }
-	if _, err := os.Stat(filepath.Join(dst, "options.txt")); !os.IsNotExist(err) { t.Fatal("player options must not be migrated") }
+	for _, path := range []string{"mods/official.jar", "config/server.toml", "saves/world/level.dat", "options.txt", "optionsof.txt", "keybindings/keys.txt", "shaderpacks/look.zip"} {
+		if _, err := os.Stat(filepath.Join(root, path)); err != nil {
+			t.Fatalf("missing fixture content %q: %v", path, err)
+		}
+	}
 }

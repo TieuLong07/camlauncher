@@ -344,7 +344,8 @@ export namespace models {
 	    }
 	}
 	export class ModpackArchive {
-	    url: string;
+	    url?: string;
+	    urls?: string[];
 	    sha256?: string;
 	    size?: number;
 	
@@ -355,6 +356,7 @@ export namespace models {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.url = source["url"];
+	        this.urls = source["urls"];
 	        this.sha256 = source["sha256"];
 	        this.size = source["size"];
 	    }

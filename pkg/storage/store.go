@@ -880,21 +880,120 @@ func CopyDirectory(src, dst string) error {
 	})
 }
 
-// CopyChillTownPayload migrates server-owned Cooking TQ content without carrying worlds or player options.
-func CopyChillTownPayload(src, dst string) error {
-	for _, name := range []string{"mods", "config", "defaultconfigs", "kubejs", "resourcepacks", "shaderpacks", "tlm_custom_pack", "CustomSkinLoader", "customnpcs", "patchouli_books", "patchouli_data.json", "fancymenu_data", "modernfix", "moonlight-global-datapacks", "skyblockbuilder", "emberstextapi", "hotai", "PCL", "building_blueprints", "minecraftinstance.json", "FarmingTales_ForgeⅡ v1.5.1.json"} {
-		source := filepath.Join(src, name)
-		if _, err := os.Stat(source); os.IsNotExist(err) {
-			continue
-		} else if err != nil {
+// RenameDirectory renames a complete instance in-place, preserving every customized file.
+func RenameDirectory(src, dst string) error {
+	if filepath.Clean(src) == filepath.Clean(dst) {
+		return nil
+	}
+	if _, err := os.Stat(src); err != nil {
+		return err
+	}
+	if _, err := os.Stat(dst); err == nil {
+		return fmt.Errorf("đích đổi tên đã tồn tại: %s", dst)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return err
+	}
+	// os.Rename cannot move across the old TiCaLauncher and new CamLauncher roots
+	// reliably on Windows. Copy the complete tree, verify it, then remove the source.
+	if err := CopyDirectory(src, dst); err != nil {
+		_ = os.RemoveAll(dst)
+		return err
+	}
+	if err := verifyDirectoryContents(src, dst); err != nil {
+		_ = os.RemoveAll(dst)
+		return err
+	}
+	return os.RemoveAll(src)
+}
+
+func verifyDirectoryContents(src, dst string) error {
+	sourceFiles := make(map[string]int64)
+	if err := filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
 			return err
 		}
-		target := filepath.Join(dst, name)
-		if err := CopyDirectory(source, target); err != nil {
+		if entry.IsDir() {
+			return nil
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			return fmt.Errorf("không hỗ trợ symbolic link trong instance: %s", path)
+		}
+		info, err := entry.Info()
+		if err != nil {
 			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		sourceFiles[filepath.ToSlash(rel)] = info.Size()
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	destFiles := make(map[string]int64)
+	if err := filepath.WalkDir(dst, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(dst, path)
+		if err != nil {
+			return err
+		}
+		destFiles[filepath.ToSlash(rel)] = info.Size()
+		return nil
+	}); err != nil {
+		return err
+	}
+	if len(sourceFiles) != len(destFiles) {
+		return fmt.Errorf("kiểm tra instance thất bại: source có %d file, đích có %d file", len(sourceFiles), len(destFiles))
+	}
+	for rel, size := range sourceFiles {
+		if destSize, ok := destFiles[rel]; !ok || destSize != size {
+			return fmt.Errorf("kiểm tra instance thất bại tại %s", rel)
 		}
 	}
 	return nil
+}
+
+// MigrateLegacyInstance preserves a partial target as a backup, then renames the
+// complete legacy directory into its official name. Both paths must share a volume.
+func MigrateLegacyInstance(legacyPath, targetPath string) (string, error) {
+	if filepath.Clean(legacyPath) == filepath.Clean(targetPath) {
+		return "", nil
+	}
+	if _, err := os.Stat(legacyPath); err != nil {
+		return "", err
+	}
+
+	backupPath := ""
+	if _, err := os.Stat(targetPath); err == nil {
+		backupPath = targetPath + ".partial-backup-" + time.Now().UTC().Format("20060102-150405")
+		if err := os.Rename(targetPath, backupPath); err != nil {
+			return "", fmt.Errorf("không thể lưu backup instance chưa hoàn chỉnh: %w", err)
+		}
+	} else if !os.IsNotExist(err) {
+		return "", err
+	}
+
+	if err := RenameDirectory(legacyPath, targetPath); err != nil {
+		if backupPath != "" {
+			_ = os.Rename(backupPath, targetPath)
+		}
+		return "", err
+	}
+	return backupPath, nil
 }
 
 // FindOfficialChillTown resolves the official profile before any personal instance.

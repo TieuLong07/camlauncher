@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TiCa Launcher</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN (Loaded before theme configuration) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            app: {
+              bg: '#0a0d14',
+              surface: '#111622',
+              card: 'rgba(19, 25, 37, 0.7)',
+              border: 'rgba(255, 255, 255, 0.08)',
+              accent: '#34d399',      // Soft emerald / sage
+              accentHover: '#10b981',
+              accentMuted: 'rgba(52, 211, 153, 0.15)',
+              textMuted: '#94a3b8',
+              textSub: '#64748b'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom subtle scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(52, 211, 153, 0.3);
+    }
+    
+    .glass-panel {
+      background: rgba(15, 20, 30, 0.82);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    /* Expanding accordion card transitions */
+    .expand-card {
+      transition: flex 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s ease, border-color 0.3s ease;
+    }
+    
+    .active-glow {
+      box-shadow: 0 0 35px -6px rgba(52, 211, 153, 0.22);
+    }
+
+    /* Modal Animation */
+    .modal-enter {
+      animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body class="bg-app-bg text-slate-100 font-sans antialiased select-none h-screen w-screen overflow-hidden flex flex-col justify-between">
+
+  <div class="fixed inset-0 pointer-events-none z-0">
+    <div id="ambientBg" class="w-full h-full bg-cover bg-center opacity-15 filter blur-lg scale-105 transition-all duration-700" style="background-image: url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1920&q=80');"></div>
+    <div class="absolute inset-0 bg-gradient-to-t from-app-bg via-app-bg/92 to-app-bg/70"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-app-bg via-transparent to-app-bg/85"></div>
+  </div>
+
+  <!-- App Main Frame -->
+  <div class="relative z-10 flex flex-col h-full">
+
+    <!-- Top Navigation Header -->
+    <header class="h-14 px-6 flex items-center justify-between border-b border-white/5 bg-app-bg/60 backdrop-blur-xl shrink-0">
+      <!-- Left: Brand -->
+      <div class="flex items-center space-x-3.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-slate-950 font-black text-sm tracking-tighter">
+          Ti
+        </div>
+        <div class="flex items-center space-x-2.5">
+          <span class="font-bold tracking-tight text-white text-sm">TiCa Launcher</span>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-mono">v2.4.1</span>
+        </div>
+      </div>
+
+      <!-- Center: Network Health -->
+      <div class="hidden md:flex items-center space-x-3 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/5 text-xs text-slate-300">
+        <span class="flex h-2 w-2 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+        </span>
+        <span class="font-medium text-slate-300">Máy chủ ổn định</span>
+        <span class="text-white/20">|</span>
+        <span class="text-slate-400 text-[11px] font-mono">18ms</span>
+      </div>
+
+      <!-- Right: Window Controls -->
+      <div class="flex items-center space-x-1 pl-2 text-slate-400">
+        <button class="w-7 h-7 rounded-lg hover:bg-white/5 flex items-center justify-center hover:text-white transition-colors">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+        </button>
+        <button class="w-7 h-7 rounded-lg hover:bg-white/5 flex items-center justify-center hover:text-white transition-colors">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="16" height="16" x="4" y="4" rx="2" stroke-width="2"/></svg>
+        </button>
+        <button class="w-7 h-7 rounded-lg hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-colors">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+      
+      <!-- Slim Vertical Navigation Bar with Collapse Support -->
+      <aside id="mainSidebar" class="w-56 p-3 flex flex-col justify-between border-r border-white/5 bg-app-bg/50 backdrop-blur-md shrink-0 transition-all duration-300 ease-in-out">
+        <nav class="space-y-1.5">
+          <!-- Sidebar Header with Collapse Button -->
+          <div class="flex items-center justify-between px-2 pb-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase h-7">
+            <span class="sidebar-label transition-opacity duration-200">Menu</span>
+            <button 
+              id="sidebarToggleBtn"
+              onclick="toggleSidebar()" 
+              title="Thu gọn / Mở rộng menu"
+              class="w-6 h-6 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            >
+              <svg id="sidebarToggleIcon" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+              </svg>
+            </button>
+          </div>
+          
+          <button class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 shadow-sm transition-all" title="Chơi game">
+            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="sidebar-label font-semibold whitespace-nowrap overflow-hidden text-ellipsis">Chơi game</span>
+          </button>
+
+          <button class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/[0.04] transition-all" title="Thư viện">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <span class="sidebar-label whitespace-nowrap overflow-hidden text-ellipsis">Thư viện</span>
+          </button>
+
+          <button class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/[0.04] transition-all" title="Kho Mods">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span class="sidebar-label whitespace-nowrap overflow-hidden text-ellipsis">Kho Mods</span>
+          </button>
+
+          <button class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/[0.04] transition-all" title="Cài đặt">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="sidebar-label whitespace-nowrap overflow-hidden text-ellipsis">Cài đặt</span>
+          </button>
+        </nav>
+
+        <!-- Bottom Sidebar: Account Switcher Replaces RAM -->
+        <div class="pt-3 border-t border-white/5">
+          <button 
+            id="sidebarAccountBtn"
+            title="Tài khoản: tica_gamer"
+            class="w-full flex items-center justify-between p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 transition-all text-left group"
+          >
+            <div class="flex items-center space-x-2.5 min-w-0">
+              <div class="relative shrink-0">
+                <img 
+                  src="https://mc-heads.net/avatar/Steve/28" 
+                  alt="Skin" 
+                  class="w-7 h-7 rounded-lg shadow border border-white/10"
+                />
+                <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-400 border border-app-bg rounded-full"></span>
+              </div>
+              <div class="sidebar-label leading-tight min-w-0 overflow-hidden">
+                <div class="text-xs font-semibold text-slate-200 truncate">tica_gamer</div>
+                <div class="text-[10px] text-emerald-400 font-mono">Microsoft</div>
+              </div>
+            </div>
+            <svg class="sidebar-label w-3.5 h-3.5 text-slate-400 shrink-0 ml-1 group-hover:text-slate-200 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/>
+            </svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content Area: Both Panels -->
+      <main class="flex-1 p-6 md:p-7 overflow-y-auto flex flex-col space-y-6">
+
+        <!-- PANEL 1: MÁY CHỦ ĐỀ XUẤT -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+              <h2 class="text-xl md:text-2xl font-black tracking-tight text-white">Đề xuất</h2>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                Chính thức
+              </span>
+            </div>
+            <span class="text-xs text-slate-400">Tự động đồng bộ mod khi vào chơi</span>
+          </div>
+
+          <!-- DYNAMIC EXPANDING ACCORDION DECK -->
+          <div class="flex flex-col lg:flex-row gap-3.5 min-h-[280px] w-full" id="recommendedContainer">
+            
+            <!-- Card 1: Chill Town -->
+            <div 
+              id="card-rec-chilltown"
+              onclick="selectRecommended('chilltown')"
+              class="expand-card flex-[2.6] cursor-pointer rounded-2xl relative overflow-hidden border border-emerald-500/50 active-glow bg-slate-900/80 p-5 flex flex-col justify-between group"
+            >
+              <div class="absolute inset-0 z-0 pointer-events-none">
+                <img 
+                  src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80" 
+                  alt="Chill Town" 
+                  class="w-full h-full object-cover opacity-25 group-hover:scale-105 transition-transform duration-700"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/60 to-transparent"></div>
+              </div>
+
+              <!-- Top Row -->
+              <div class="relative z-10 flex items-start justify-between">
+                <div class="flex items-center space-x-2.5">
+                  <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                  </div>
+                  <div>
+                    <span class="text-xs font-semibold text-emerald-300">TICA HOST</span>
+                    <div class="text-xs font-mono text-slate-400">Fabric 1.21.1</div>
+                  </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                  <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-black/40 text-emerald-400 border border-emerald-500/20 flex items-center space-x-1.5 backdrop-blur-md">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>18ms</span>
+                  </span>
+                  <span class="state-badge px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500 text-slate-950">
+                    Đang chọn
+                  </span>
+                </div>
+              </div>
+
+              <!-- Center: Expanded Content -->
+              <div class="relative z-10 my-3 expanded-content block space-y-2">
+                <h3 class="text-2xl font-black text-white tracking-tight">Chill Town SMP</h3>
+                <p class="text-xs text-slate-300 line-clamp-2 leading-relaxed max-w-xl">
+                  Modpack sinh tồn cộng đồng kết hợp voice chat khoảng cách, nạp sẵn cấu hình shader mượt mà.
+                </p>
+
+                <div class="flex flex-wrap gap-2 pt-1 text-[11px]">
+                  <span class="px-2.5 py-1 rounded-lg bg-white/[0.06] text-slate-200 border border-white/10">38 mods tự động</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-white/[0.06] text-slate-200 border border-white/10">Voice Chat</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-white/[0.06] text-slate-200 border border-white/10">Shader nạp sẵn</span>
+                </div>
+              </div>
+
+              <!-- Compact Content -->
+              <div class="relative z-10 compact-content hidden my-auto text-center py-4">
+                <div class="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">Chill Town</div>
+                <div class="text-[11px] text-slate-400 font-mono mt-1">9/24 người • 18ms</div>
+              </div>
+
+              <!-- Bottom Row -->
+              <div class="relative z-10 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+                <div class="flex items-center space-x-2 text-slate-300">
+                  <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                  <span><strong class="text-emerald-400 font-bold">9</strong>/24 người</span>
+                </div>
+                <span class="text-[11px] font-mono text-emerald-400">Đồng bộ tự động</span>
+              </div>
+            </div>
+
+            <!-- Card 2: Battle Royal -->
+            <div 
+              id="card-rec-battleroyal"
+              onclick="selectRecommended('battleroyal')"
+              class="expand-card flex-1 cursor-pointer rounded-2xl relative overflow-hidden border border-white/10 hover:border-white/20 bg-slate-900/60 p-5 flex flex-col justify-between group"
+            >
+              <div class="absolute inset-0 z-0 pointer-events-none">
+                <img 
+                  src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80" 
+                  alt="Battle Royal" 
+                  class="w-full h-full object-cover opacity-15 group-hover:scale-105 transition-transform duration-700"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/60 to-transparent"></div>
+              </div>
+
+              <!-- Top Row -->
+              <div class="relative z-10 flex items-start justify-between">
+                <div class="flex items-center space-x-2.5">
+                  <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  </div>
+                  <div>
+                    <span class="text-xs font-semibold text-slate-300">TICA HOST</span>
+                    <div class="text-xs font-mono text-slate-400">Fabric 1.21.1</div>
+                  </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                  <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-black/40 text-slate-300 border border-white/10 flex items-center space-x-1.5 backdrop-blur-md">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>24ms</span>
+                  </span>
+                  <span class="state-badge hidden px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500 text-slate-950">
+                    Đang chọn
+                  </span>
+                </div>
+              </div>
+
+              <!-- Center: Expanded Content -->
+              <div class="relative z-10 my-3 expanded-content hidden space-y-2">
+                <h3 class="text-2xl font-black text-white tracking-tight">Battle Royal Hardcore</h3>
+                <p class="text-xs text-slate-300 line-clamp-2 leading-relaxed max-w-xl">
+                  Đấu trường sinh tồn PvP thu hẹp bản đồ. Tối ưu Sodium 240 FPS và âm thanh không gian 3D.
+                </p>
+
+                <div class="flex flex-wrap gap-2 pt-1 text-[11px]">
+                  <span class="px-2.5 py-1 rounded-lg bg-white/[0.06] text-slate-200 border border-white/10">24 mods PvP</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-white/[0.06] text-slate-200 border border-white/10">Khóa 240 FPS</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-white/[0.06] text-slate-200 border border-white/10">Anti-cheat</span>
+                </div>
+              </div>
+
+              <!-- Compact Content -->
+              <div class="relative z-10 compact-content block my-auto text-center py-4">
+                <div class="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">Battle Royal</div>
+                <div class="text-[11px] text-slate-400 font-mono mt-1">18/32 người • 24ms</div>
+              </div>
+
+              <!-- Bottom Row -->
+              <div class="relative z-10 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+                <div class="flex items-center space-x-2 text-slate-300">
+                  <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                  <span><strong class="text-emerald-400 font-bold">18</strong>/32 người</span>
+                </div>
+                <span class="text-[11px] font-mono text-emerald-400">Đồng bộ tự động</span>
+              </div>
+            </div>
+
+            <!-- Card 3: SkyFactory -->
+            <div 
+              id="card-rec-skyfactory"
+              onclick="selectRecommended('skyfactory')"
+              class="expand-card flex-1 cursor-pointer rounded-2xl relative overflow-hidden border border-white/10 hover:border-white/20 bg-slate-900/60 p-5 flex flex-col justify-between group"
+            >
+              <div class="absolute inset-0 z-0 pointer-events-none">
+                <img 
+                  src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80" 
+                  alt="SkyFactory" 
+                  class="w-full h-full object-cover opacity-15 group-hover:scale-105 transition-transform duration-700"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/60 to-transparent"></div>
+              </div>
+
+              <!-- Top Row -->
+              <div class="relative z-10 flex items-start justify-between">
+                <div class="flex items-center space-x-2.5">
+                  <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </div>
+                  <div>
+                    <span class="text-xs font-semibold text-slate-300">TICA HOST</span>
+                    <div class="text-xs font-mono text-slate-400">Forge 1.20.1</div>
+                  </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                  <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-black/40 text-slate-300 border border-white/10 flex items-center space-x-1.5 backdrop-blur-md">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>31ms</span>
+                  </span>
+                  <span class="state-badge hidden px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500 text-slate-950">
+                    Đang chọn
+                  </span>
+                </div>
+              </div>
+
+              <!-- Center: Expanded Content -->
+              <div class="relative z-10 my-3 expanded-content hidden space-y-2">
+                <h3 class="text-2xl font-black text-white tracking-tight">SkyFactory Genesis</h3>
+                <p class="text-xs text-slate-300 line-clamp-2 leading-relaxed max-w-xl">
+                  Bắt đầu từ cái cây giữa hư không, chế tạo dây chuyền tự động hóa Create và kho lưu trữ AE2.
+                </p>
+
+                <div class="flex flex-wrap gap-2 pt-1 text-[11px]">
+                  <span class="px-2.5 py-1 rounded-lg bg-white/[0.06] text-slate-200 border border-white/10">86 mods cơ khí</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-white/[0.06] text-slate-200 border border-white/10">Tự tối ưu RAM</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-white/[0.06] text-slate-200 border border-white/10">Đảo bay riêng</span>
+                </div>
+              </div>
+
+              <!-- Compact Content -->
+              <div class="relative z-10 compact-content block my-auto text-center py-4">
+                <div class="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">SkyFactory</div>
+                <div class="text-[11px] text-slate-400 font-mono mt-1">19/40 người • 31ms</div>
+              </div>
+
+              <!-- Bottom Row -->
+              <div class="relative z-10 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+                <div class="flex items-center space-x-2 text-slate-300">
+                  <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                  <span><strong class="text-emerald-400 font-bold">19</strong>/40 người</span>
+                </div>
+                <span class="text-[11px] font-mono text-emerald-400">Đồng bộ tự động</span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- PANEL 2: KHÁC (BẢN CỤC BỘ) -->
+        <section class="space-y-3 pt-2 border-t border-white/5">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-base md:text-lg font-bold tracking-tight text-white">Bản cài đặt cá nhân</h2>
+              <p class="text-xs text-slate-400">Instance cục bộ và modpack tự cấu hình trên máy</p>
+            </div>
+
+            <button 
+              onclick="openAddModal()"
+              class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-emerald-500/15 hover:border-emerald-500/30 border border-white/10 text-slate-300 hover:text-emerald-300 transition-all text-xs font-semibold"
+            >
+              <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>Thêm bản cài</span>
+            </button>
+          </div>
+
+          <!-- Local Instances Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3" id="localContainer">
+            
+            <!-- Local 1: Vanilla 1.21.1 -->
+            <div 
+              id="card-local-vanilla"
+              onclick="selectLocal('vanilla')"
+              class="cursor-pointer rounded-2xl p-4 border border-white/5 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05] transition-all flex items-center justify-between group"
+            >
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-105 transition-transform text-slate-300">
+                  <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <span class="font-bold text-sm text-slate-200 group-hover:text-white">Vanilla 1.21.1</span>
+                    <span class="local-badge hidden px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Đang chọn</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 font-mono mt-0.5">Mojang Official • 4.0 GB</div>
+                </div>
+              </div>
+              <span class="text-[11px] px-2 py-0.5 rounded bg-white/5 text-slate-400 font-mono">Cục bộ</span>
+            </div>
+
+            <!-- Local 2: RLCraft -->
+            <div 
+              id="card-local-rlcraft"
+              onclick="selectLocal('rlcraft')"
+              class="cursor-pointer rounded-2xl p-4 border border-white/5 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05] transition-all flex items-center justify-between group"
+            >
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center group-hover:scale-105 transition-transform text-purple-400">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <span class="font-bold text-sm text-slate-200 group-hover:text-white">RLCraft v2.9.3</span>
+                    <span class="local-badge hidden px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Đang chọn</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 font-mono mt-0.5">Forge 1.12.2 • 6.0 GB</div>
+                </div>
+              </div>
+              <span class="text-[11px] px-2 py-0.5 rounded bg-white/5 text-slate-400 font-mono">168 mods</span>
+            </div>
+
+            <!-- Local 3: Custom Fabric -->
+            <div 
+              id="card-local-custom"
+              onclick="selectLocal('custom')"
+              class="cursor-pointer rounded-2xl p-4 border border-white/5 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05] transition-all flex items-center justify-between group"
+            >
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:scale-105 transition-transform text-blue-400">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <span class="font-bold text-sm text-slate-200 group-hover:text-white">Thử nghiệm Fabric</span>
+                    <span class="local-badge hidden px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Đang chọn</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 font-mono mt-0.5">Fabric 1.20.4 • 12 mods</div>
+                </div>
+              </div>
+              <span class="text-[11px] px-2 py-0.5 rounded bg-white/5 text-slate-400 font-mono">Cục bộ</span>
+            </div>
+
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- BOTTOM ACTION DOCK -->
+    <footer class="h-20 px-6 md:px-8 glass-panel flex items-center justify-between border-t border-white/10 relative z-20 shrink-0">
+      
+      <!-- Left: Target Instance Feedback -->
+      <div class="flex items-center space-x-3.5">
+        <div class="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center shadow-inner relative" id="dockIconContainer">
+          <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span id="dockOnlineDot" class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-app-bg rounded-full"></span>
+        </div>
+        <div class="text-left">
+          <div class="flex items-center space-x-2">
+            <span id="dockTitle" class="text-base font-bold text-white tracking-wide">Chill Town SMP</span>
+            <span id="dockTypeBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20">
+              CHÍNH THỨC
+            </span>
+          </div>
+          <div id="dockSubtitle" class="text-xs text-slate-400 flex items-center space-x-1.5 mt-0.5">
+            <span>Fabric 1.21.1</span>
+            <span>•</span>
+            <span class="text-emerald-400">38 mods tự động</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Play Action Button -->
+      <div class="flex items-center space-x-3">
+        
+        <button title="Thư mục game" class="p-3.5 rounded-2xl text-slate-400 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+        </button>
+
+        <button 
+          id="playButton" 
+          onclick="handlePlayAction()"
+          class="relative w-64 md:w-72 h-13 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-[0.98] transition-all duration-300 shadow-lg shadow-emerald-500/25 flex items-center justify-center overflow-hidden font-bold text-slate-950 text-base tracking-wide"
+        >
+          <div id="progressBar" class="absolute inset-y-0 left-0 bg-emerald-300/30 w-0 transition-all duration-150 ease-out"></div>
+          <div id="buttonContent" class="relative z-10 flex items-center space-x-2">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <span id="buttonText" class="tracking-wider font-extrabold uppercase text-sm">VÀO MÁY CHỦ NGAY</span>
+          </div>
+        </button>
+
+      </div>
+
+    </footer>
+
+  </div>
+
+  <!-- Add Instance Modal -->
+  <div id="addModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+    <div class="glass-panel modal-enter w-full max-w-md p-6 rounded-3xl border border-white/10 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <h3 class="font-bold text-white text-base">Thêm Instance</h3>
+        <button onclick="closeAddModal()" class="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Tên Instance</label>
+          <input type="text" placeholder="Ví dụ: My Survival 1.21" class="w-full px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500/50" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Modloader</label>
+          <div class="grid grid-cols-3 gap-2 text-xs">
+            <button class="py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold">Fabric</button>
+            <button class="py-2 rounded-xl bg-white/[0.03] text-slate-400 border border-white/5 hover:text-white">Forge</button>
+            <button class="py-2 rounded-xl bg-white/[0.03] text-slate-400 border border-white/5 hover:text-white">Vanilla</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex items-center justify-end space-x-2">
+        <button onclick="closeAddModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors">Hủy</button>
+        <button onclick="closeAddModal()" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-colors">Tạo mới</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* SERVER AND LOCAL INSTANCE DATASETS (Zero Emojis - Pure Vectors) */
+    const svgIcons = {
+      house: `<svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
+      swords: `<svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+      gear: `<svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>`,
+      cube: `<svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>`,
+      skull: `<svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
+      flask: `<svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>`
+    };
+
+    const recommendedInstances = {
+      chilltown: {
+        id: 'chilltown',
+        title: "Chill Town SMP",
+        version: "Fabric 1.21.1",
+        iconKey: "house",
+        subtitle: "Fabric 1.21.1 • 38 mods tự động",
+        btnText: "VÀO MÁY CHỦ NGAY",
+        bannerUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80"
+      },
+      battleroyal: {
+        id: 'battleroyal',
+        title: "Battle Royal Hardcore",
+        version: "Fabric 1.21.1",
+        iconKey: "swords",
+        subtitle: "Fabric 1.21.1 • 24 mods PvP",
+        btnText: "VÀO ĐẤU TRƯỜNG",
+        bannerUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80"
+      },
+      skyfactory: {
+        id: 'skyfactory',
+        title: "SkyFactory Genesis",
+        version: "Forge 1.20.1",
+        iconKey: "gear",
+        subtitle: "Forge 1.20.1 • 86 mods cơ khí",
+        btnText: "VÀO SKYFACTORY",
+        bannerUrl: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80"
+      }
+    };
+
+    const localInstances = {
+      vanilla: {
+        id: 'vanilla',
+        title: "Vanilla 1.21.1",
+        version: "Vanilla 1.21.1",
+        iconKey: "cube",
+        subtitle: "Mojang Official • 4.0 GB RAM",
+        btnText: "CHƠI NGAY"
+      },
+      rlcraft: {
+        id: 'rlcraft',
+        title: "RLCraft v2.9.3",
+        version: "Forge 1.12.2",
+        iconKey: "skull",
+        subtitle: "Forge 1.12.2 • 168 mods",
+        btnText: "CHƠI RLCRAFT"
+      },
+      custom: {
+        id: 'custom',
+        title: "Thử nghiệm Fabric",
+        version: "Fabric 1.20.4",
+        iconKey: "flask",
+        subtitle: "Fabric 1.20.4 • 12 mods",
+        btnText: "CHƠI NGAY"
+      }
+    };
+
+    let activeCategory = 'recommended';
+    let currentSelectedId = 'chilltown';
+    let currentState = 'IDLE';
+
+    /* Select a recommended server */
+    function selectRecommended(id) {
+      if (currentState !== 'IDLE') return;
+      activeCategory = 'recommended';
+      currentSelectedId = id;
+      const data = recommendedInstances[id];
+
+      // Update ambient background
+      document.getElementById('ambientBg').style.backgroundImage = `url('${data.bannerUrl}')`;
+
+      // Expand clicked recommended card, collapse other recommended cards
+      const recKeys = ['chilltown', 'battleroyal', 'skyfactory'];
+      recKeys.forEach(key => {
+        const card = document.getElementById('card-rec-' + key);
+        const expandedContent = card.querySelector('.expanded-content');
+        const compactContent = card.querySelector('.compact-content');
+        const stateBadge = card.querySelector('.state-badge');
+
+        if (key === id) {
+          card.className = "expand-card flex-[2.6] cursor-pointer rounded-2xl relative overflow-hidden border border-emerald-500/50 active-glow bg-slate-900/80 p-5 flex flex-col justify-between group";
+          expandedContent.classList.remove('hidden');
+          expandedContent.classList.add('block');
+          compactContent.classList.remove('block');
+          compactContent.classList.add('hidden');
+          if (stateBadge) stateBadge.classList.remove('hidden');
+        } else {
+          card.className = "expand-card flex-1 cursor-pointer rounded-2xl relative overflow-hidden border border-white/10 hover:border-white/20 bg-slate-900/60 p-5 flex flex-col justify-between group";
+          expandedContent.classList.remove('block');
+          expandedContent.classList.add('hidden');
+          compactContent.classList.remove('hidden');
+          compactContent.classList.add('block');
+          if (stateBadge) stateBadge.classList.add('hidden');
+        }
+      });
+
+      // Clear all local highlights
+      ['vanilla', 'rlcraft', 'custom'].forEach(locKey => {
+        const lCard = document.getElementById('card-local-' + locKey);
+        lCard.className = "cursor-pointer rounded-2xl p-4 border border-white/5 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05] transition-all flex items-center justify-between group";
+        const b = lCard.querySelector('.local-badge');
+        if (b) b.classList.add('hidden');
+      });
+
+      // Update Dock
+      updateDock({
+        icon: svgIcons[data.iconKey],
+        title: data.title,
+        badgeText: "CHÍNH THỨC",
+        badgeClass: "text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20",
+        onlineDotClass: "absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-app-bg rounded-full",
+        subtitleHtml: `<span>${data.version}</span><span>•</span><span class="text-emerald-400">${data.subtitle}</span>`,
+        btnText: data.btnText
+      });
+    }
+
+    /* Select a local instance (Collapses ALL recommended cards into compact mode) */
+    function selectLocal(id) {
+      if (currentState !== 'IDLE') return;
+      activeCategory = 'local';
+      currentSelectedId = id;
+      const data = localInstances[id];
+
+      // UX REQUIREMENT: Collapse ALL recommended cards so the player clearly knows a local card is active
+      const recKeys = ['chilltown', 'battleroyal', 'skyfactory'];
+      recKeys.forEach(key => {
+        const card = document.getElementById('card-rec-' + key);
+        const expandedContent = card.querySelector('.expanded-content');
+        const compactContent = card.querySelector('.compact-content');
+        const stateBadge = card.querySelector('.state-badge');
+
+        card.className = "expand-card flex-1 cursor-pointer rounded-2xl relative overflow-hidden border border-white/10 hover:border-white/20 bg-slate-900/60 p-5 flex flex-col justify-between group opacity-75 hover:opacity-100";
+        expandedContent.classList.remove('block');
+        expandedContent.classList.add('hidden');
+        compactContent.classList.remove('hidden');
+        compactContent.classList.add('block');
+        if (stateBadge) stateBadge.classList.add('hidden');
+      });
+
+      // Highlight the selected local card
+      ['vanilla', 'rlcraft', 'custom'].forEach(locKey => {
+        const lCard = document.getElementById('card-local-' + locKey);
+        const b = lCard.querySelector('.local-badge');
+
+        if (locKey === id) {
+          lCard.className = "cursor-pointer rounded-2xl p-4 border border-emerald-500/50 bg-emerald-500/[0.08] transition-all flex items-center justify-between group shadow-lg shadow-emerald-950/40";
+          if (b) b.classList.remove('hidden');
+        } else {
+          lCard.className = "cursor-pointer rounded-2xl p-4 border border-white/5 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05] transition-all flex items-center justify-between group";
+          if (b) b.classList.add('hidden');
+        }
+      });
+
+      // Update Dock
+      updateDock({
+        icon: svgIcons[data.iconKey],
+        title: data.title,
+        badgeText: "CỤC BỘ",
+        badgeClass: "text-[10px] px-2 py-0.5 rounded-full bg-slate-500/20 text-slate-300 font-mono border border-slate-500/30",
+        onlineDotClass: "absolute -top-1 -right-1 w-3 h-3 bg-slate-400 border-2 border-app-bg rounded-full",
+        subtitleHtml: `<span>${data.version}</span><span>•</span><span class="text-slate-400">${data.subtitle}</span>`,
+        btnText: data.btnText
+      });
+    }
+
+    function updateDock(cfg) {
+      const container = document.getElementById('dockIconContainer');
+      container.innerHTML = cfg.icon + `<span id="dockOnlineDot" class="${cfg.onlineDotClass}"></span>`;
+      document.getElementById('dockTitle').innerText = cfg.title;
+      document.getElementById('dockTypeBadge').className = cfg.badgeClass;
+      document.getElementById('dockTypeBadge').innerText = cfg.badgeText;
+      document.getElementById('dockSubtitle').innerHTML = cfg.subtitleHtml;
+      document.getElementById('buttonText').innerText = cfg.btnText;
+    }
+
+    /* Play action handler */
+    function handlePlayAction() {
+      const btn = document.getElementById('playButton');
+      const btnContent = document.getElementById('buttonContent');
+      const progressBar = document.getElementById('progressBar');
+
+      if (currentState === 'IDLE') {
+        currentState = 'SYNCING';
+        btn.classList.remove('from-emerald-500', 'to-teal-400', 'text-slate-950');
+        btn.classList.add('from-slate-800', 'to-slate-800', 'text-emerald-300', 'border', 'border-emerald-500/40');
+
+        let progress = 0;
+        const isRec = activeCategory === 'recommended';
+
+        const syncInterval = setInterval(() => {
+          progress += 5;
+          progressBar.style.width = progress + '%';
+
+          if (isRec) {
+            btnContent.innerHTML = `
+              <svg class="w-4 h-4 animate-spin text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+              <span class="font-mono text-xs font-semibold">ĐỒNG BỘ MOD (${progress}%)</span>
+            `;
+          } else {
+            btnContent.innerHTML = `
+              <span class="font-mono text-xs font-semibold animate-pulse">KIỂM TRA TỆP TIN: ${progress}%</span>
+            `;
+          }
+
+          if (progress >= 100) {
+            clearInterval(syncInterval);
+            currentState = 'RUNNING';
+            progressBar.style.width = '0%';
+            btn.classList.remove('from-slate-800', 'to-slate-800', 'text-emerald-300', 'border-emerald-500/40');
+            btn.classList.add('from-rose-500/20', 'to-rose-600/20', 'text-rose-300', 'border', 'border-rose-500/30');
+            btnContent.innerHTML = `
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping mr-1"></span>
+              <span class="text-xs font-bold uppercase tracking-wider">ĐANG CHƠI (BẤM ĐỂ DỪNG)</span>
+            `;
+          }
+        }, 70);
+
+      } else if (currentState === 'RUNNING') {
+        currentState = 'IDLE';
+        btn.className = "relative w-64 md:w-72 h-13 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-[0.98] transition-all duration-300 shadow-lg shadow-emerald-500/25 flex items-center justify-center overflow-hidden font-bold text-slate-950 text-base tracking-wide";
+        const curText = activeCategory === 'recommended' ? recommendedInstances[currentSelectedId].btnText : localInstances[currentSelectedId].btnText;
+        btnContent.innerHTML = `
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <span id="buttonText" class="tracking-wider font-extrabold uppercase text-sm">${curText}</span>
+        `;
+        progressBar.style.width = '0%';
+      }
+    }
+
+    /* Modal controls */
+    function openAddModal() {
+      document.getElementById('addModal').classList.remove('hidden');
+    }
+    function closeAddModal() {
+      document.getElementById('addModal').classList.add('hidden');
+    }
+
+    /* Sidebar collapse toggle */
+    let isSidebarCollapsed = false;
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('mainSidebar');
+      const labels = document.querySelectorAll('.sidebar-label');
+      const toggleIcon = document.getElementById('sidebarToggleIcon');
+      const navBtns = document.querySelectorAll('.nav-btn');
+      const accountBtn = document.getElementById('sidebarAccountBtn');
+      const toggleBtn = document.getElementById('sidebarToggleBtn');
+
+      isSidebarCollapsed = !isSidebarCollapsed;
+
+      if (isSidebarCollapsed) {
+        sidebar.classList.remove('w-56');
+        sidebar.classList.add('w-16');
+        labels.forEach(el => el.classList.add('hidden'));
+        toggleIcon.classList.add('rotate-180');
+        navBtns.forEach(btn => {
+          btn.classList.remove('space-x-3');
+          btn.classList.add('justify-center');
+        });
+        accountBtn.classList.remove('justify-between');
+        accountBtn.classList.add('justify-center');
+        toggleBtn.parentElement.classList.remove('justify-between');
+        toggleBtn.parentElement.classList.add('justify-center');
+      } else {
+        sidebar.classList.remove('w-16');
+        sidebar.classList.add('w-56');
+        labels.forEach(el => el.classList.remove('hidden'));
+        toggleIcon.classList.remove('rotate-180');
+        navBtns.forEach(btn => {
+          btn.classList.remove('justify-center');
+          btn.classList.add('space-x-3');
+        });
+        accountBtn.classList.remove('justify-center');
+        accountBtn.classList.add('justify-between');
+        toggleBtn.parentElement.classList.remove('justify-center');
+        toggleBtn.parentElement.classList.add('justify-between');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "CamLauncher",
+  "outputfilename": "CamLauncher",
+  "frontend:install": "npm.cmd install",
+  "frontend:build": "npm.cmd run build",
+  "frontend:dev:watcher": "npm.cmd run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "TiCa",
+    "email": "contact@ticalauncher.dev"
+  }
+}

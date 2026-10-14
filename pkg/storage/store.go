@@ -882,7 +882,7 @@ func CopyDirectory(src, dst string) error {
 
 // CopyChillTownPayload migrates server-owned Cooking TQ content without carrying worlds or player options.
 func CopyChillTownPayload(src, dst string) error {
-	for _, name := range []string{"mods", "config", "defaultconfigs", "kubejs", "resourcepacks", "shaderpacks", "tlm_custom_pack", "CustomSkinLoader", "customnpcs", "patchouli_books", "patchouli_data.json", "fancymenu_data", "modernfix", "moonlight-global-datapacks", "skyblockbuilder", "emberstextapi", "hotai", "PCL", "building_blueprints", "minecraftinstance.json"} {
+	for _, name := range []string{"mods", "config", "defaultconfigs", "kubejs", "resourcepacks", "shaderpacks", "tlm_custom_pack", "CustomSkinLoader", "customnpcs", "patchouli_books", "patchouli_data.json", "fancymenu_data", "modernfix", "moonlight-global-datapacks", "skyblockbuilder", "emberstextapi", "hotai", "PCL", "building_blueprints", "minecraftinstance.json", "FarmingTales_ForgeⅡ v1.5.1.json"} {
 		source := filepath.Join(src, name)
 		if _, err := os.Stat(source); os.IsNotExist(err) {
 			continue

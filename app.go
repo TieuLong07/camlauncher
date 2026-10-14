@@ -366,7 +366,11 @@ func (a *App) EnsureOfficialChillTown() (*models.Instance, error) {
 		}
 	}
 
-	progressCallback := func(evt models.ProgressEvent) { runtime.EventsEmit(a.ctx, "game:progress", evt) }
+	progressCallback := func(evt models.ProgressEvent) {
+		if a.ctx != nil {
+			runtime.EventsEmit(a.ctx, "game:progress", evt)
+		}
+	}
 	if err := modsync.SyncServerModpack(target.Path, manifest, progressCallback); err != nil {
 		return nil, err
 	}

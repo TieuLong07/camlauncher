@@ -69,7 +69,7 @@ export const Titlebar: React.FC<TitlebarProps> = ({
             className="status-pill font-semibold rounded-full bg-amber-500/10 text-amber-200 border border-amber-500/20 font-mono"
             style={{ height: '24px', padding: '0 10px', fontSize: '10.5px' }}
           >
-            ALPHA 0.1.1
+            ALPHA 0.1.2
           </span>
           {launcherUpdate?.hasUpdate && (
             <button

@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	CurrentLauncherVersion    = "0.1.1-alpha"
-	DefaultUpdateManifestURL = "https://apps.owlys.io.vn/CamLauncher/releases/latest.json"
+	CurrentLauncherVersion    = "0.1.2-alpha"
+	DefaultUpdateManifestURL = "https://raw.githubusercontent.com/TieuLong07/camlauncher/main/manifests/launcher.json"
 )
 
 // GetAppVersion returns the hardcoded current application version

@@ -1,8 +1,8 @@
 {
-  "latestVersion": "0.1.1-alpha",
-  "title": "CamLauncher Alpha 0.1.1",
-  "changelog": "Chill Town chính thức: tự chuyển dữ liệu Cooking TQ, đồng bộ modpack GitHub và luôn chạy đúng profile máy chủ.",
-  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.1-alpha/CamLauncher.exe",
+  "latestVersion": "0.1.2-alpha",
+  "title": "CamLauncher Alpha 0.1.2",
+  "changelog": "Sửa luồng Play máy chủ: luôn chuẩn bị Chill Town, chuyển dữ liệu Cooking TQ, và đồng bộ modpack chính thức từ GitHub.",
+  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.2-alpha/CamLauncher.exe",
   "releaseDate": "2026-10-14",
-  "sha256": "188df6ec7d6b0108921321471018c844169ca4c748821424dbdd9e8382d7ee3a"
+  "sha256": "6e8bbb18083e402043adfab13cec9cf0887e70ba3c74f85f3840e70de427bf4f"
 }

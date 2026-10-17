@@ -3,8 +3,8 @@
   "name": "Chill Town",
   "tagline": "Ẩm thực, nông nghiệp và cơ giới hóa",
   "description": "Modpack chính thức của máy chủ Chill Town.",
-  "version": "0.1.4-alpha",
-  "changelog": "Đồng bộ Cooking TQ sang Chill Town, giữ settings, keybind, resource pack, shader và config; không mang local saves vì world chạy trên server.",
+  "version": "0.1.5-alpha",
+  "changelog": "Thêm mod Quick Skin 3.1.1 hỗ trợ xem trước và đồng bộ skin/cape in-game.",
   "gameVersion": "1.20.1",
   "loader": "forge",
   "loaderVersion": "47.4.10",
@@ -17,5 +17,12 @@
     "sha256": "94a834ee20b3574f635c9639400c5535f2077158a6520f7d9253ad72940bac26",
     "size": 885434464
   },
-  "files": []
+  "files": [
+    {
+      "path": "mods/Quick Skin - Forge - 1.20.1-3.1.1.jar",
+      "url": "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.5-alpha/Quick-Skin-Forge-1.20.1-3.1.1.jar",
+      "sha1": "7176ecf01c607567e48faacfd4f4d66b4bb1dbb2",
+      "size": 5489545
+    }
+  ]
 }

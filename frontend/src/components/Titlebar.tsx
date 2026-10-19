@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { WindowMinimise, WindowToggleMaximise, Quit } from '../../wailsjs/runtime/runtime';
 import { models } from '../../wailsjs/go/models';
+import { GetAppVersion } from '../../wailsjs/go/main/App';
 
 interface TitlebarProps {
   stats: models.SystemStats | null;
@@ -53,6 +54,16 @@ export const Titlebar: React.FC<TitlebarProps> = ({
   onOpenLauncherUpdate,
   isRunning,
 }) => {
+  const [appVersion, setAppVersion] = useState<string>('0.2.0-beta');
+
+  useEffect(() => {
+    GetAppVersion()
+      .then((ver) => {
+        if (ver) setAppVersion(ver);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <header
       className="h-14 flex items-center justify-between border-b border-white/5 bg-[#0a0d14]/70 backdrop-blur-xl shrink-0 wails-drag z-30 select-none"
@@ -66,10 +77,12 @@ export const Titlebar: React.FC<TitlebarProps> = ({
         <div className="flex items-center" style={{ gap: '10px' }}>
           <span className="font-bold tracking-tight text-white text-sm">CamLauncher</span>
           <span
-            className="status-pill font-semibold rounded-full bg-amber-500/10 text-amber-200 border border-amber-500/20 font-mono"
+            className="status-pill font-bold rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 font-mono"
             style={{ height: '24px', padding: '0 10px', fontSize: '10.5px' }}
           >
-            ALPHA 0.1.4
+            {appVersion.toUpperCase().includes('BETA')
+              ? appVersion.toUpperCase()
+              : `BETA ${appVersion}`}
           </span>
           {launcherUpdate?.hasUpdate && (
             <button
@@ -88,7 +101,7 @@ export const Titlebar: React.FC<TitlebarProps> = ({
       {/* Center: Hardware Specs Flex Bar (Gọn gàng đẹp chuẩn khoe cấu hình) */}
       {stats ? (
         <div
-          className="hidden md:flex items-center status-pill rounded-full bg-white/[0.035] hover:bg-white/[0.06] border border-white/10 hover:border-emerald-500/35 transition-all select-none shadow-sm cursor-default"
+          className="wails-no-drag hidden md:flex items-center status-pill rounded-full bg-white/[0.035] hover:bg-white/[0.06] border border-white/10 hover:border-emerald-500/35 transition-all select-none shadow-sm cursor-default"
           style={{ height: '34px', padding: '0 18px', gap: '12px' }}
           title={`Thông số phần cứng máy tính:\n• CPU: ${stats.cpuModel} (${stats.cpuCores} Cores Logic)\n• GPU: ${stats.gpuModel || 'Card tích hợp'}\n• RAM: ${Math.round(stats.totalRamMb / 1024)}GB (Còn trống: ${Math.round(stats.freeRamMb / 1024)}GB)`}
         >

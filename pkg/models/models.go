@@ -260,6 +260,7 @@ type ServerManifest struct {
 	MaxMemoryMB   int             `json:"maxMemoryMb,omitempty"`
 	Archive       *ModpackArchive `json:"archive,omitempty"`
 	Files         []ModpackFile   `json:"files"`
+	ExpectedMods  []string        `json:"expectedMods,omitempty"`
 }
 
 // CommunityServerEntry is stored in the launcher's list of community servers
@@ -290,6 +291,9 @@ type UpdateCheckResult struct {
 	CurrentVersion    string          `json:"currentVersion"`
 	LatestVersion     string          `json:"latestVersion"`
 	HasUpdate         bool            `json:"hasUpdate"`
+	IsDrifted         bool            `json:"isDrifted"`
+	MissingMods       []string        `json:"missingMods,omitempty"`
+	ExtraMods         []string        `json:"extraMods,omitempty"`
 	Changelog         string          `json:"changelog"`
 	FilesToDownload   []ModpackFile   `json:"filesToDownload"`
 	FilesToDelete     []string        `json:"filesToDelete"`

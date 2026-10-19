@@ -21,6 +21,7 @@ interface SidebarProps {
   isRunning?: boolean;
   onKillGame?: () => void;
   onOpenFolder?: () => void;
+  onOpenAccountSetup?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -28,6 +29,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   activeAccount,
   instanceCount = 0,
+  onOpenAccountSetup,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -69,9 +71,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  const accountName = activeAccount?.username || 'CamPlayer';
-  const accountType = activeAccount?.type === 'microsoft' ? 'Microsoft' : 'Offline';
-  const avatarUrl = `https://minotar.net/helm/${accountName}/36.png`;
+  const isCamPlayer = !activeAccount || activeAccount.username.toLowerCase() === 'camplayer';
+  const accountName = isCamPlayer ? 'Chưa đặt tên' : activeAccount.username;
+  const accountType = isCamPlayer
+    ? 'Cần tạo tên'
+    : activeAccount.type === 'microsoft'
+    ? 'Microsoft'
+    : 'Offline';
+  const avatarUrl = isCamPlayer
+    ? 'https://minotar.net/helm/Steve/36.png'
+    : `https://minotar.net/helm/${accountName}/36.png`;
 
   return (
     <aside
@@ -158,8 +167,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Bottom Sidebar: User Profile Card */}
       <div style={{ paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
         <button
-          onClick={() => onSelectTab('accounts')}
-          title={`Tài khoản: ${accountName} (${accountType})`}
+          onClick={() => {
+            if (isCamPlayer && onOpenAccountSetup) {
+              onOpenAccountSetup();
+            } else {
+              onSelectTab('accounts');
+            }
+          }}
+          title={isCamPlayer ? 'Bấm để tạo tài khoản người chơi' : `Tài khoản: ${accountName} (${accountType})`}
           style={{
             height: '56px',
             padding: collapsed ? '0' : '0 12px',
@@ -167,7 +182,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
           className={`w-full flex items-center ${
             collapsed ? 'justify-center' : 'justify-between'
-          } bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-emerald-500/30 transition-all text-left group cursor-pointer`}
+          } ${
+            isCamPlayer
+              ? 'bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30'
+              : 'bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-emerald-500/30'
+          } transition-all text-left group cursor-pointer btn-tactile`}
         >
           <div className="flex items-center min-w-0" style={{ gap: '12px' }}>
             <div className="relative shrink-0">
@@ -179,17 +198,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   (e.target as HTMLElement).style.display = 'none';
                 }}
               />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-[#0a0d14] rounded-full" />
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0a0d14] ${
+                  isCamPlayer ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
+                }`}
+              />
             </div>
             {!collapsed && (
               <div className="flex flex-col min-w-0 overflow-hidden" style={{ gap: '2px' }}>
-                <span className="text-xs font-bold text-slate-100 truncate tracking-wide">
+                <span className={`text-xs font-bold truncate tracking-wide ${isCamPlayer ? 'text-amber-200' : 'text-slate-100'}`}>
                   {accountName}
                 </span>
                 <div className="flex items-center">
                   <span
                     className={`status-pill font-mono font-bold text-[9.5px] uppercase tracking-wider rounded-md ${
-                      accountType === 'Microsoft'
+                      isCamPlayer
+                        ? 'text-amber-300 bg-amber-500/20 border border-amber-500/35 animate-pulse'
+                        : accountType === 'Microsoft'
                         ? 'text-blue-300 bg-blue-500/15 border border-blue-500/25'
                         : 'text-emerald-300 bg-emerald-500/15 border border-emerald-500/25'
                     }`}

@@ -13,6 +13,7 @@ import { ConsoleView } from './components/ConsoleView';
 import { SettingsView } from './components/SettingsView';
 import { LauncherUpdateModal } from './components/LauncherUpdateModal';
 import { InstanceSettingsModal } from './components/InstanceSettingsModal';
+import { AccountSetupModal } from './components/AccountSetupModal';
 import {
   GetSystemStats,
   GetAccounts,
@@ -27,6 +28,7 @@ import {
   InstallCommunityServer,
   SyncCommunityServer,
   CheckLauncherUpdate,
+  CheckOfficialServerUpdate,
   CreateInstance,
   EnsureOfficialChillTown,
   SyncOfficialChillTown,
@@ -60,6 +62,9 @@ export const App: React.FC = () => {
   const [launcherUpdate, setLauncherUpdate] = useState<models.LauncherUpdateInfo | null>(null);
   const [showLauncherUpdateModal, setShowLauncherUpdateModal] = useState(false);
   const [showInstanceSettingsModal, setShowInstanceSettingsModal] = useState(false);
+  const [showAccountSetupModal, setShowAccountSetupModal] = useState(false);
+  const [dockActionType, setDockActionType] = useState<'play' | 'update' | 'sync'>('play');
+  const [officialUpdate, setOfficialUpdate] = useState<models.UpdateCheckResult | null>(null);
   const [envSetup, setEnvSetup] = useState<models.EnvironmentSetupStatus | null>(null);
   const [isAutoSettingUp, setIsAutoSettingUp] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -86,7 +91,7 @@ export const App: React.FC = () => {
     badgeClass: 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20',
     version: RECOMMENDED_SERVERS[0].version,
     subtitle: `${RECOMMENDED_SERVERS[0].loader.toUpperCase()} • 8 GB RAM`,
-    btnText: 'VÀO MÁY CHỦ NGAY',
+    btnText: 'CHƠI',
   });
 
   const showToast = (msg: string) => {
@@ -110,6 +115,15 @@ export const App: React.FC = () => {
       setInstances(insts || []);
       setCommunityServers(servers || []);
 
+      // If active account is null or CamPlayer and there's no real account, trigger the setup modal
+      const isCamPlayer = !actAcc || actAcc.username.toLowerCase() === 'camplayer';
+      const hasRealAccount = (accs || []).some(
+        (a) => a.username.toLowerCase() !== 'camplayer'
+      );
+      if (isCamPlayer && !hasRealAccount) {
+        setShowAccountSetupModal(true);
+      }
+
       // Home always binds only the official Chill Town profile, never a personal instance.
       if (insts && !activeInstance) {
         const chillTown = insts.find(
@@ -124,6 +138,34 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     refreshData();
+
+    // Auto-check official server update / mod drift on startup
+    CheckOfficialServerUpdate()
+      .then((res: models.UpdateCheckResult) => {
+        setOfficialUpdate(res);
+        if (res?.hasUpdate) {
+          if (res.isDrifted) {
+            setDockActionType('sync');
+            setDockData((prev) => ({
+              ...prev,
+              btnText: 'ĐỒNG BỘ MOD',
+            }));
+          } else {
+            setDockActionType('update');
+            setDockData((prev) => ({
+              ...prev,
+              btnText: 'CẬP NHẬT',
+            }));
+          }
+        } else {
+          setDockActionType('play');
+          setDockData((prev) => ({
+            ...prev,
+            btnText: 'CHƠI',
+          }));
+        }
+      })
+      .catch((err: any) => console.warn('CheckOfficialServerUpdate error:', err));
 
     CheckLauncherUpdate()
       .then((res: models.LauncherUpdateInfo) => {
@@ -222,7 +264,7 @@ export const App: React.FC = () => {
       badgeClass: 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20',
       version: server.version,
       subtitle: `${server.loader.toUpperCase()} • ${server.pingMs}ms P2P`,
-      btnText: server.btnText,
+      btnText: dockActionType === 'update' ? 'CẬP NHẬT' : dockActionType === 'sync' ? 'ĐỒNG BỘ MOD' : 'CHƠI',
     });
   };
 
@@ -244,7 +286,7 @@ export const App: React.FC = () => {
       badgeClass: 'text-[10px] px-2 py-0.5 rounded-full bg-slate-500/20 text-slate-300 font-mono border border-slate-500/30',
       version: `${loaderName} ${inst.gameVersion}`,
       subtitle: `${loaderName} • ${ramGb} GB RAM`,
-      btnText: 'CHƠI NGAY',
+      btnText: 'CHƠI',
     });
     showToast(`Đang chọn bản cài: ${inst.name}`);
   };
@@ -255,9 +297,9 @@ export const App: React.FC = () => {
       showToast('Vui lòng chọn hoặc tạo một phiên bản để chơi!');
       return;
     }
-    if (!activeAccount) {
-      showToast('Vui lòng thêm hoặc chọn tài khoản người chơi!');
-      setCurrentTab('accounts');
+    if (!activeAccount || activeAccount.username.toLowerCase() === 'camplayer') {
+      setShowAccountSetupModal(true);
+      showToast('Vui lòng tạo tên người chơi trước khi vào game!');
       return;
     }
 
@@ -298,6 +340,45 @@ export const App: React.FC = () => {
       return;
     }
 
+    if (!activeAccount || activeAccount.username.toLowerCase() === 'camplayer') {
+      setShowAccountSetupModal(true);
+      showToast('Vui lòng tạo tên người chơi trước khi vào máy chủ!');
+      return;
+    }
+
+    // 1. If update or mod drift sync is needed, click performs update/sync and WAITS (does not launch game yet)
+    if (activeCategory === 'recommended' && (dockActionType === 'update' || dockActionType === 'sync')) {
+      try {
+        setIsSyncing(true);
+        const actionLabel =
+          dockActionType === 'sync'
+            ? 'Đang đồng bộ lại danh sách mod theo máy chủ...'
+            : 'Đang tải bản cập nhật modpack Chill Town...';
+        showToast(actionLabel);
+
+        const official = await EnsureOfficialChillTown();
+        await refreshData();
+        setActiveInstance(official);
+
+        const refreshed = await CheckOfficialServerUpdate();
+        setOfficialUpdate(refreshed);
+
+        if (!refreshed?.hasUpdate) {
+          setDockActionType('play');
+          setDockData((prev) => ({
+            ...prev,
+            btnText: 'CHƠI',
+          }));
+          showToast('Đã cập nhật hoàn tất! Bấm CHƠI để vào game.');
+        }
+      } catch (syncErr: any) {
+        showToast(`Lỗi: ${syncErr}`);
+      } finally {
+        setIsSyncing(false);
+      }
+      return;
+    }
+
     if (activeCategory === 'recommended') {
       // Auto-start Cam P2P tunnel if not already running
       try {
@@ -312,19 +393,13 @@ export const App: React.FC = () => {
         console.warn('Auto start tunnel error:', tErr);
       }
 
-      // Recommended Play always installs/migrates and launches Chill Town.
-      // Never fall back to the first personal instance (for example TiCa Boosted).
-      try {
-        setIsSyncing(true);
-        showToast('Đang chuẩn bị Chill Town và kiểm tra modpack chính thức...');
+      if (activeInstance) {
+        await handleLaunchGame(activeInstance);
+      } else {
         const official = await EnsureOfficialChillTown();
         await refreshData();
         setActiveInstance(official);
         await handleLaunchGame(official);
-      } catch (syncErr: any) {
-        showToast(`Không thể chuẩn bị Chill Town: ${syncErr}`);
-      } finally {
-        setIsSyncing(false);
       }
     } else {
       if (activeInstance) {
@@ -406,6 +481,7 @@ export const App: React.FC = () => {
             isRunning={isRunning}
             onKillGame={handleKillGame}
             onOpenFolder={handleOpenFolder}
+            onOpenAccountSetup={() => setShowAccountSetupModal(true)}
           />
 
           {/* Main Content Pane */}
@@ -418,6 +494,33 @@ export const App: React.FC = () => {
                 tunnelStatus={tunnelStatus}
                 onToggleTunnel={handleToggleTunnel}
                 showToast={showToast}
+                officialUpdate={officialUpdate}
+                isSyncing={isSyncing}
+                onTriggerSync={handleDockPlayAction}
+                onUpdateStatusChanged={(res) => {
+                  setOfficialUpdate(res);
+                  if (res?.hasUpdate) {
+                    if (res.isDrifted) {
+                      setDockActionType('sync');
+                      setDockData((prev) => ({
+                        ...prev,
+                        btnText: 'ĐỒNG BỘ MOD',
+                      }));
+                    } else {
+                      setDockActionType('update');
+                      setDockData((prev) => ({
+                        ...prev,
+                        btnText: 'CẬP NHẬT',
+                      }));
+                    }
+                  } else {
+                    setDockActionType('play');
+                    setDockData((prev) => ({
+                      ...prev,
+                      btnText: 'CHƠI',
+                    }));
+                  }
+                }}
               />
             )}
 
@@ -542,7 +645,7 @@ export const App: React.FC = () => {
             <button
               onClick={handleOpenFolder}
               title={`Mở thư mục instance: ${dockData.title}`}
-              className="status-pill group rounded-2xl bg-white/[0.04] hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/35 text-slate-300 hover:text-emerald-300 transition-all duration-200 cursor-pointer shadow-sm active:scale-95 flex items-center gap-2"
+              className="status-pill group rounded-2xl bg-white/[0.04] hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/35 text-slate-300 hover:text-emerald-300 transition-all duration-200 cursor-pointer shadow-sm btn-tactile flex items-center gap-2"
               style={{
                 height: '50px',
                 padding: '0 18px',
@@ -564,7 +667,7 @@ export const App: React.FC = () => {
                 }
               }}
               title={`Cài đặt instance: ${dockData.title}`}
-              className="status-pill group rounded-2xl bg-white/[0.04] hover:bg-cyan-500/10 border border-white/10 hover:border-cyan-500/35 text-slate-300 hover:text-cyan-300 transition-all duration-200 cursor-pointer shadow-sm active:scale-95 flex items-center gap-2"
+              className="status-pill group rounded-2xl bg-white/[0.04] hover:bg-cyan-500/10 border border-white/10 hover:border-cyan-500/35 text-slate-300 hover:text-cyan-300 transition-all duration-200 cursor-pointer shadow-sm btn-tactile flex items-center gap-2"
               style={{
                 height: '50px',
                 padding: '0 18px',
@@ -576,17 +679,19 @@ export const App: React.FC = () => {
               <span className="hidden sm:inline font-semibold">Cài Đặt</span>
             </button>
 
-            {/* Primary Action Button (Play/Stop) */}
+            {/* Primary Action Button (Play / Update / Sync / Stop) */}
             <button
               id="playButton"
               onClick={handleDockPlayAction}
               disabled={isSyncing}
-              className={`relative w-64 md:w-72 h-13 py-3.5 px-6 rounded-2xl transition-all duration-300 shadow-lg flex items-center justify-center overflow-hidden font-bold text-base tracking-wide cursor-pointer ${
+              className={`relative w-64 md:w-72 h-13 py-3.5 px-6 rounded-2xl transition-all duration-300 shadow-lg flex items-center justify-center overflow-hidden font-bold text-base tracking-wide cursor-pointer btn-tactile ${
                 isRunning
                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                   : isSyncing
                   ? 'bg-slate-800 text-emerald-300 border border-emerald-500/40'
-                  : 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-[0.98] text-slate-950 shadow-emerald-500/25'
+                  : dockActionType === 'sync'
+                  ? 'bg-gradient-to-r from-amber-500 to-emerald-400 hover:from-amber-400 hover:to-emerald-300 text-slate-950 glow-primary shadow-amber-500/25'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 glow-primary shadow-emerald-500/25'
               }`}
             >
               <div
@@ -608,12 +713,21 @@ export const App: React.FC = () => {
                   <>
                     <RotateCw className="w-4 h-4 animate-spin text-emerald-400" />
                     <span className="font-mono text-xs font-semibold">
-                      ĐỒNG BỘ MOD ({Math.round(progress?.percentage || 0)}%)
+                      {progress?.message && progress.message.includes('Đang')
+                        ? progress.message
+                        : dockActionType === 'sync'
+                        ? 'ĐỒNG BỘ MOD'
+                        : 'CẬP NHẬT'}{' '}
+                      ({Math.round(progress?.percentage || 0)}%)
                     </span>
                   </>
                 ) : (
                   <>
-                    <Play className="w-5 h-5 fill-current" />
+                    {dockActionType === 'update' || dockActionType === 'sync' ? (
+                      <RotateCw className="w-4 h-4" />
+                    ) : (
+                      <Play className="w-5 h-5 fill-current" />
+                    )}
                     <span id="buttonText" className="tracking-wider font-extrabold uppercase text-sm">
                       {dockData.btnText}
                     </span>
@@ -649,6 +763,22 @@ export const App: React.FC = () => {
             version: `${updatedInst.loader ? updatedInst.loader.toUpperCase() : 'VANILLA'} ${updatedInst.gameVersion}`,
             subtitle: `${updatedInst.loader ? updatedInst.loader.toUpperCase() : 'Mojang Official'} • ${Math.round(updatedInst.maxMemoryMb / 1024)} GB RAM`,
           }));
+        }}
+        showToast={showToast}
+      />
+
+      {/* First-Time Player Account Setup Modal */}
+      <AccountSetupModal
+        isOpen={showAccountSetupModal}
+        existingAccounts={accounts}
+        onAccountCreated={(newAcc) => {
+          setActiveAccount(newAcc);
+          setShowAccountSetupModal(false);
+          refreshData();
+        }}
+        onOpenMicrosoftLogin={() => {
+          setShowAccountSetupModal(false);
+          setCurrentTab('accounts');
         }}
         showToast={showToast}
       />

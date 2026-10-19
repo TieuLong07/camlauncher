@@ -122,19 +122,7 @@ func (s *Store) Save() error {
 }
 
 func (s *Store) ensureDefaults() {
-	// If no accounts, add a default offline account
-	if len(s.Accounts) == 0 {
-		s.Accounts = append(s.Accounts, models.Account{
-			ID:          uuid.New().String(),
-			Username:    "CamPlayer",
-			Type:        models.AccountOffline,
-			UUID:        "e96fbb52-f542-3e54-9442-7a4cb8c1e285",
-			AccessToken: "offline-token",
-			SkinURL:     "https://minotar.net/skin/CamPlayer",
-			IsActive:    true,
-			CreatedAt:   time.Now(),
-		})
-	}
+	// If no accounts, leave empty so frontend prompts player for their custom IGN on first launch
 
 	// If no instances, add recommended presets
 	if len(s.Instances) == 0 {

@@ -36,6 +36,18 @@ func FetchServerManifest(manifestURL string) (*models.ServerManifest, error) {
 		return &m, nil
 	}
 
+	// Check local manifest fallback if present
+	for _, localCandidate := range []string{"manifests/chilltown.json", "D:\\2026WORK\\MCLauncher\\manifests\\chilltown.json"} {
+		if strings.Contains(manifestURL, "chilltown.json") {
+			if data, err := os.ReadFile(localCandidate); err == nil {
+				var m models.ServerManifest
+				if err := json.Unmarshal(data, &m); err == nil && len(m.ExpectedMods) > 0 {
+					return &m, nil
+				}
+			}
+		}
+	}
+
 	client := &http.Client{Timeout: 15 * time.Second}
 	req, err := http.NewRequest("GET", manifestURL, nil)
 	if err != nil {
@@ -112,6 +124,15 @@ func CheckServerUpdate(instancePath string, manifestURL string) (*models.UpdateC
 		}
 	}
 
+	for _, expectedMod := range manifest.ExpectedMods {
+		cleanName := strings.TrimSpace(expectedMod)
+		if cleanName != "" {
+			remotePathSet[strings.ToLower(filepath.FromSlash(filepath.Join("mods", cleanName)))] = true
+			remotePathSet[strings.ToLower("mods/"+cleanName)] = true
+			remotePathSet[strings.ToLower(cleanName)] = true
+		}
+	}
+
 	// 2. Identify obsolete files (files managed previously by this modpack that admin removed)
 	for _, managed := range localState.ManagedFiles {
 		normManaged := filepath.FromSlash(managed)
@@ -124,8 +145,41 @@ func CheckServerUpdate(instancePath string, manifestURL string) (*models.UpdateC
 		}
 	}
 
+	// 3. Mod drift check (Missing or Extra mods against ExpectedMods)
+	if len(manifest.ExpectedMods) > 0 {
+		expectedSet := make(map[string]bool)
+		for _, modName := range manifest.ExpectedMods {
+			expectedSet[strings.ToLower(strings.TrimSpace(modName))] = true
+		}
+
+		modsDir := filepath.Join(instancePath, "mods")
+		localModsSet := make(map[string]bool)
+		if entries, err := os.ReadDir(modsDir); err == nil {
+			for _, entry := range entries {
+				if !entry.IsDir() && strings.HasSuffix(strings.ToLower(entry.Name()), ".jar") {
+					localModsSet[strings.ToLower(entry.Name())] = true
+					if !expectedSet[strings.ToLower(entry.Name())] {
+						result.ExtraMods = append(result.ExtraMods, entry.Name())
+					}
+				}
+			}
+		}
+
+		for _, expected := range manifest.ExpectedMods {
+			trimmed := strings.TrimSpace(expected)
+			if trimmed != "" && !localModsSet[strings.ToLower(trimmed)] {
+				result.MissingMods = append(result.MissingMods, trimmed)
+			}
+		}
+
+		if len(result.MissingMods) > 0 || len(result.ExtraMods) > 0 {
+			result.IsDrifted = true
+			result.HasUpdate = true
+		}
+	}
+
 	// HasUpdate is true if version changed or files need syncing
-	if result.CurrentVersion != manifest.Version || len(result.FilesToDownload) > 0 || len(result.FilesToDelete) > 0 {
+	if result.CurrentVersion != manifest.Version || len(result.FilesToDownload) > 0 || len(result.FilesToDelete) > 0 || result.IsDrifted {
 		result.HasUpdate = true
 	}
 
@@ -189,6 +243,14 @@ func SyncServerModpack(
 	for _, f := range newManagedFiles {
 		remoteMap[strings.ToLower(f)] = true
 	}
+	for _, expectedMod := range manifest.ExpectedMods {
+		cleanName := strings.TrimSpace(expectedMod)
+		if cleanName != "" {
+			remoteMap[strings.ToLower(filepath.FromSlash(filepath.Join("mods", cleanName)))] = true
+			remoteMap[strings.ToLower("mods/"+cleanName)] = true
+			remoteMap[strings.ToLower(cleanName)] = true
+		}
+	}
 
 	for _, oldManaged := range localState.ManagedFiles {
 		normOld := filepath.FromSlash(oldManaged)
@@ -200,6 +262,75 @@ func SyncServerModpack(
 			}
 			fullPath := filepath.Join(instancePath, normOld)
 			_ = os.Remove(fullPath)
+		}
+	}
+
+	// Step 2.5: Handle ExpectedMods drift (purge extra mods, restore missing mods)
+	if len(manifest.ExpectedMods) > 0 {
+		modsDir := filepath.Join(instancePath, "mods")
+		_ = os.MkdirAll(modsDir, 0755)
+
+		expectedSet := make(map[string]bool)
+		for _, m := range manifest.ExpectedMods {
+			cleanName := strings.TrimSpace(m)
+			if cleanName != "" {
+				expectedSet[strings.ToLower(cleanName)] = true
+				newManagedFiles = append(newManagedFiles, filepath.Join("mods", cleanName))
+			}
+		}
+
+		// Purge extra mods
+		if entries, err := os.ReadDir(modsDir); err == nil {
+			for _, entry := range entries {
+				if !entry.IsDir() && strings.HasSuffix(strings.ToLower(entry.Name()), ".jar") {
+					if !expectedSet[strings.ToLower(entry.Name())] {
+						_ = os.Remove(filepath.Join(modsDir, entry.Name()))
+					}
+				}
+			}
+		}
+
+		// Check which expected mods are missing from disk
+		var missingFromArchive []string
+		manifestFilesMap := make(map[string]models.ModpackFile)
+		for _, f := range manifest.Files {
+			manifestFilesMap[strings.ToLower(filepath.Base(f.Path))] = f
+		}
+
+		for _, expected := range manifest.ExpectedMods {
+			trimmed := strings.TrimSpace(expected)
+			if trimmed == "" {
+				continue
+			}
+			targetPath := filepath.Join(modsDir, trimmed)
+			if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+				if mf, ok := manifestFilesMap[strings.ToLower(trimmed)]; ok {
+					tasks = append(tasks, minecraft.DownloadTask{
+						URL:  mf.URL,
+						Path: targetPath,
+						SHA1: mf.SHA1,
+						Size: mf.Size,
+					})
+				} else {
+					missingFromArchive = append(missingFromArchive, "mods/"+trimmed)
+				}
+			}
+		}
+
+		// Extract any missing archive files directly from cached or downloaded archive
+		if len(missingFromArchive) > 0 && manifest.Archive != nil {
+			if progressFn != nil {
+				progressFn(models.ProgressEvent{
+					InstanceID: manifest.ID,
+					Stage:      "syncing_modpack",
+					Message:    fmt.Sprintf("Đang khôi phục %d mod thiếu từ bản gốc...", len(missingFromArchive)),
+					Percentage: 25,
+				})
+			}
+			archivePath := getOrDownloadArchive(manifest.Archive, progressFn)
+			if archivePath != "" {
+				_ = ExtractSpecificFiles(archivePath, instancePath, missingFromArchive)
+			}
 		}
 	}
 
@@ -265,61 +396,86 @@ func installArchive(instancePath string, archive *models.ModpackArchive) error {
 		return nil
 	}
 
+	archivePath := getOrDownloadArchive(archive, nil)
+	if archivePath == "" {
+		return fmt.Errorf("không thể tải hoặc tìm thấy gói modpack chính thức")
+	}
+
+	if archive.SHA256 != "" && !verifySHA256(archivePath, archive.SHA256) {
+		return fmt.Errorf("gói modpack chính thức có SHA-256 không khớp")
+	}
+	if err := ExtractArchive(archivePath, instancePath); err != nil {
+		return fmt.Errorf("không thể giải nén gói modpack: %w", err)
+	}
+	return nil
+}
+
+func getOrDownloadArchive(archive *models.ModpackArchive, progressFn func(models.ProgressEvent)) string {
+	if archive == nil {
+		return ""
+	}
+	cacheDir := filepath.Join(os.Getenv("APPDATA"), "CamLauncher", "cache")
+	_ = os.MkdirAll(cacheDir, 0755)
+
+	archiveName := "ChillTown-archive.zip"
+	if archive.URL != "" {
+		archiveName = filepath.Base(archive.URL)
+	}
+	cachedPath := filepath.Join(cacheDir, archiveName)
+
+	if info, err := os.Stat(cachedPath); err == nil && info.Size() > 0 {
+		if archive.SHA256 == "" || verifySHA256(cachedPath, archive.SHA256) {
+			return cachedPath
+		}
+	}
+
+	// Check local releases directory if available (dev environment)
+	relPath := filepath.Join("D:\\2026WORK\\MCLauncher\\releases", archiveName)
+	if info, err := os.Stat(relPath); err == nil && info.Size() > 0 {
+		if archive.SHA256 == "" || verifySHA256(relPath, archive.SHA256) {
+			return relPath
+		}
+	}
+
+	// Download to cache if not found locally
 	urls := archive.URLs
 	if len(urls) == 0 && archive.URL != "" {
 		urls = []string{archive.URL}
 	}
 	if len(urls) == 0 {
-		return fmt.Errorf("gói modpack không có URL")
+		return ""
 	}
 
-	tmpFile, err := os.CreateTemp("", "camlauncher-modpack-*.zip")
+	client := &http.Client{Timeout: 20 * time.Minute}
+	out, err := os.OpenFile(cachedPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-		return err
+		return ""
 	}
-	tmpPath := tmpFile.Name()
-	_ = tmpFile.Close()
-	defer os.Remove(tmpPath)
+	defer out.Close()
 
-	client := &http.Client{Timeout: 15 * time.Minute}
-	out, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_TRUNC, 0600)
-	if err != nil {
-		return err
-	}
-	for index, url := range urls {
+	for _, url := range urls {
 		req, reqErr := http.NewRequest("GET", url, nil)
 		if reqErr != nil {
-			_ = out.Close()
-			return reqErr
+			return ""
 		}
-		req.Header.Set("User-Agent", "CamLauncher/0.1.2-alpha (ModpackSync)")
+		req.Header.Set("User-Agent", "CamLauncher/0.1.5-alpha (ModpackSync)")
 		resp, getErr := client.Do(req)
-		if getErr != nil {
-			_ = out.Close()
-			return fmt.Errorf("không thể tải phần %d của gói modpack: %w", index+1, getErr)
+		if getErr != nil || resp.StatusCode != http.StatusOK {
+			if resp != nil && resp.Body != nil {
+				_ = resp.Body.Close()
+			}
+			return ""
 		}
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			_ = out.Close()
-			return fmt.Errorf("máy chủ gói modpack trả HTTP %d ở phần %d", resp.StatusCode, index+1)
-		}
-		_, copyErr := io.Copy(out, resp.Body)
+		_, _ = io.Copy(out, resp.Body)
 		_ = resp.Body.Close()
-		if copyErr != nil {
-			_ = out.Close()
-			return copyErr
-		}
 	}
-	if err := out.Close(); err != nil {
-		return err
+
+	if archive.SHA256 != "" && !verifySHA256(cachedPath, archive.SHA256) {
+		_ = os.Remove(cachedPath)
+		return ""
 	}
-	if archive.SHA256 != "" && !verifySHA256(tmpPath, archive.SHA256) {
-		return fmt.Errorf("gói modpack chính thức có SHA-256 không khớp")
-	}
-	if err := ExtractArchive(tmpPath, instancePath); err != nil {
-		return fmt.Errorf("không thể giải nén gói modpack: %w", err)
-	}
-	return nil
+
+	return cachedPath
 }
 
 func verifySHA256(path, expected string) bool {

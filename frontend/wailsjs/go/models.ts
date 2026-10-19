@@ -490,6 +490,7 @@ export namespace models {
 	    maxMemoryMb?: number;
 	    archive?: ModpackArchive;
 	    files: ModpackFile[];
+	    expectedMods?: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new ServerManifest(source);
@@ -513,6 +514,7 @@ export namespace models {
 	        this.maxMemoryMb = source["maxMemoryMb"];
 	        this.archive = this.convertValues(source["archive"], ModpackArchive);
 	        this.files = this.convertValues(source["files"], ModpackFile);
+	        this.expectedMods = source["expectedMods"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -581,6 +583,9 @@ export namespace models {
 	    currentVersion: string;
 	    latestVersion: string;
 	    hasUpdate: boolean;
+	    isDrifted: boolean;
+	    missingMods?: string[];
+	    extraMods?: string[];
 	    changelog: string;
 	    filesToDownload: ModpackFile[];
 	    filesToDelete: string[];
@@ -598,6 +603,9 @@ export namespace models {
 	        this.currentVersion = source["currentVersion"];
 	        this.latestVersion = source["latestVersion"];
 	        this.hasUpdate = source["hasUpdate"];
+	        this.isDrifted = source["isDrifted"];
+	        this.missingMods = source["missingMods"];
+	        this.extraMods = source["extraMods"];
 	        this.changelog = source["changelog"];
 	        this.filesToDownload = this.convertValues(source["filesToDownload"], ModpackFile);
 	        this.filesToDelete = source["filesToDelete"];

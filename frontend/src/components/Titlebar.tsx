@@ -54,7 +54,7 @@ export const Titlebar: React.FC<TitlebarProps> = ({
   onOpenLauncherUpdate,
   isRunning,
 }) => {
-  const [appVersion, setAppVersion] = useState<string>('0.2.0-beta');
+  const [appVersion, setAppVersion] = useState<string>('0.2.1-beta');
 
   useEffect(() => {
     GetAppVersion()

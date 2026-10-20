@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	CurrentLauncherVersion   = "0.2.0-beta"
-	DefaultUpdateManifestURL = "https://raw.githubusercontent.com/TieuLong07/camlauncher/main/manifests/launcher.json"
+	CurrentLauncherVersion    = "0.2.0-beta"
+	DefaultUpdateManifestURL  = "https://raw.githubusercontent.com/TieuLong07/camlauncher/main/manifests/launcher.json"
+	FallbackUpdateManifestURL = "https://apps.owlys.io.vn/CamLauncher/releases/latest.json"
 )
 
 // GetAppVersion returns the hardcoded current application version
@@ -63,6 +64,15 @@ func CheckLauncherUpdate(manifestURL string) (*models.LauncherUpdateInfo, error)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Get(manifestURL)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil && resp.Body != nil {
+			_ = resp.Body.Close()
+		}
+		// Try fallback endpoint
+		if manifestURL != FallbackUpdateManifestURL {
+			resp, err = client.Get(FallbackUpdateManifestURL)
+		}
+	}
 	if err != nil {
 		return nil, fmt.Errorf("không thể kết nối kiểm tra cập nhật launcher: %w", err)
 	}

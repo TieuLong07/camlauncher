@@ -171,6 +171,8 @@ export const App: React.FC = () => {
       .then((res: models.LauncherUpdateInfo) => {
         if (res?.hasUpdate) {
           setLauncherUpdate(res);
+          setShowLauncherUpdateModal(true);
+          showToast(`Có phiên bản CamLauncher v${res.latestVersion} mới!`);
         }
       })
       .catch((err: any) => console.error(err));

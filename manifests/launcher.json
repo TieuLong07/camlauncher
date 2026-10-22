@@ -4,5 +4,5 @@
   "changelog": "Tự động hiển thị popup cập nhật trực quan ngay khi mở launcher; bổ sung cơ chế fallback endpoint cập nhật từ GitHub sang Owlys Cloud.",
   "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.2.1-beta/CamLauncher.exe",
   "releaseDate": "2026-10-20",
-  "sha256": "0aacd248c8feb72ca8216bddae56b2a678410daa126fa114be8d509541e946d8"
+  "sha256": "4465cfdfb828d1c4709c793723a34cc9b11446c62ad326bdacd7180c1e42d0bb"
 }

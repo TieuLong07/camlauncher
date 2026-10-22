@@ -41,6 +41,10 @@ func DownloadBatch(
 	total := len(tasks)
 	var completed int64
 	var downloadedBytes int64
+	var totalBytes int64
+	for _, t := range tasks {
+		totalBytes += t.Size
+	}
 
 	startTime := time.Now()
 	taskChan := make(chan DownloadTask, total)
@@ -70,13 +74,24 @@ func DownloadBatch(
 				// Check if file already exists with matching SHA1
 				if task.SHA1 != "" && verifyFileSHA1(task.Path, task.SHA1) {
 					c := atomic.AddInt64(&completed, 1)
-					if progressFn != nil && c%5 == 0 {
-						sendProgress(progressFn, instanceID, stage, task.Path, c, total, downloadedBytes, startTime)
+					if task.Size > 0 {
+						atomic.AddInt64(&downloadedBytes, task.Size)
+					}
+					if progressFn != nil {
+						sendProgress(progressFn, instanceID, stage, filepath.Base(task.Path), c, total, atomic.LoadInt64(&downloadedBytes), totalBytes, startTime)
 					}
 					continue
 				}
 
-				n, err := downloadSingleFile(client, task)
+				onChunk := func(n int64) {
+					curr := atomic.AddInt64(&downloadedBytes, n)
+					if progressFn != nil {
+						c := atomic.LoadInt64(&completed)
+						sendProgress(progressFn, instanceID, stage, filepath.Base(task.Path), c, total, curr, totalBytes, startTime)
+					}
+				}
+
+				n, err := downloadSingleFileWithProgress(client, task, onChunk)
 				if err != nil {
 					errOnce.Do(func() {
 						firstErr = fmt.Errorf("lỗi tải file %s: %w", filepath.Base(task.Path), err)
@@ -84,12 +99,11 @@ func DownloadBatch(
 					return
 				}
 
-				atomic.AddInt64(&downloadedBytes, n)
 				c := atomic.AddInt64(&completed, 1)
-
 				if progressFn != nil {
-					sendProgress(progressFn, instanceID, stage, filepath.Base(task.Path), c, total, downloadedBytes, startTime)
+					sendProgress(progressFn, instanceID, stage, filepath.Base(task.Path), c, total, atomic.LoadInt64(&downloadedBytes), totalBytes, startTime)
 				}
+				_ = n
 			}
 		}()
 	}
@@ -101,7 +115,7 @@ func DownloadBatch(
 
 	// Final progress 100%
 	if progressFn != nil {
-		sendProgress(progressFn, instanceID, stage, "Hoàn tất", int64(total), total, downloadedBytes, startTime)
+		sendProgress(progressFn, instanceID, stage, "Hoàn tất", int64(total), total, downloadedBytes, totalBytes, startTime)
 	}
 
 	return nil
@@ -113,6 +127,7 @@ func sendProgress(
 	completed int64,
 	total int,
 	downloadedBytes int64,
+	totalBytes int64,
 	startTime time.Time,
 ) {
 	elapsed := time.Since(startTime).Seconds()
@@ -121,15 +136,25 @@ func sendProgress(
 		speed = float64(downloadedBytes) / 1024.0 / elapsed
 	}
 
-	pct := (float64(completed) / float64(total)) * 100.0
+	var pct float64
+	if totalBytes > 0 {
+		pct = (float64(downloadedBytes) / float64(totalBytes)) * 100.0
+	} else if total > 0 {
+		pct = (float64(completed) / float64(total)) * 100.0
+	}
 	if pct > 100 {
 		pct = 100
+	}
+
+	msg := fmt.Sprintf("Đang xử lý (%d/%d)", completed, total)
+	if totalBytes > 0 && downloadedBytes > 0 {
+		msg = fmt.Sprintf("%.1f / %.1f MB", float64(downloadedBytes)/(1024*1024), float64(totalBytes)/(1024*1024))
 	}
 
 	fn(models.ProgressEvent{
 		InstanceID:     instanceID,
 		Stage:          stage,
-		Message:        fmt.Sprintf("Đang xử lý (%d/%d)", completed, total),
+		Message:        msg,
 		Percentage:     pct,
 		CurrentItem:    currentItem,
 		CompletedItems: int(completed),
@@ -139,6 +164,10 @@ func sendProgress(
 }
 
 func downloadSingleFile(client *http.Client, task DownloadTask) (int64, error) {
+	return downloadSingleFileWithProgress(client, task, nil)
+}
+
+func downloadSingleFileWithProgress(client *http.Client, task DownloadTask, onChunk func(int64)) (int64, error) {
 	_ = os.MkdirAll(filepath.Dir(task.Path), 0755)
 
 	resp, err := client.Get(task.URL)
@@ -160,12 +189,36 @@ func downloadSingleFile(client *http.Client, task DownloadTask) (int64, error) {
 	hasher := sha1.New()
 	writer := io.MultiWriter(out, hasher)
 
-	n, err := io.Copy(writer, resp.Body)
-	_ = out.Close()
-	if err != nil {
-		_ = os.Remove(tmpFile)
-		return 0, err
+	buf := make([]byte, 64*1024)
+	var totalRead int64
+	var lastReport time.Time
+
+	for {
+		nr, rerr := resp.Body.Read(buf)
+		if nr > 0 {
+			nw, werr := writer.Write(buf[0:nr])
+			if werr != nil {
+				_ = out.Close()
+				_ = os.Remove(tmpFile)
+				return totalRead, werr
+			}
+			totalRead += int64(nw)
+			if onChunk != nil && time.Since(lastReport) > 80*time.Millisecond {
+				onChunk(int64(nw))
+				lastReport = time.Now()
+			}
+		}
+		if rerr != nil {
+			if rerr != io.EOF {
+				_ = out.Close()
+				_ = os.Remove(tmpFile)
+				return totalRead, rerr
+			}
+			break
+		}
 	}
+
+	_ = out.Close()
 
 	// Check SHA1 if expected
 	if task.SHA1 != "" {
@@ -177,7 +230,7 @@ func downloadSingleFile(client *http.Client, task DownloadTask) (int64, error) {
 	}
 
 	_ = os.Rename(tmpFile, task.Path)
-	return n, nil
+	return totalRead, nil
 }
 
 func verifyFileSHA1(filePath, expectedSHA1 string) bool {

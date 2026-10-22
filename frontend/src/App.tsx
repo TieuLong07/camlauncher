@@ -358,6 +358,17 @@ export const App: React.FC = () => {
             : 'Đang tải bản cập nhật modpack Chill Town...';
         showToast(actionLabel);
 
+        setProgress({
+          instanceId: 'chilltown',
+          stage: 'syncing_modpack',
+          message: 'Đang kết nối & kiểm tra tệp tin...',
+          percentage: 5,
+          currentItem: 'chilltown',
+          completedItems: 0,
+          totalItems: 1,
+          speedKbps: 0,
+        });
+
         const official = await EnsureOfficialChillTown();
         await refreshData();
         setActiveInstance(official);

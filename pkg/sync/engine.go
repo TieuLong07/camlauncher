@@ -198,6 +198,15 @@ func SyncServerModpack(
 
 	_ = os.MkdirAll(instancePath, 0755)
 
+	if progressFn != nil {
+		progressFn(models.ProgressEvent{
+			InstanceID: manifest.ID,
+			Stage:      "syncing_modpack",
+			Message:    "Đang kiểm tra dữ liệu modpack...",
+			Percentage: 5,
+		})
+	}
+
 	// Step 1: Read the previous sync state before deciding whether the official archive changed.
 	syncStateFile := filepath.Join(instancePath, "sync_state.json")
 	var localState models.LocalSyncState
@@ -205,14 +214,13 @@ func SyncServerModpack(
 		_ = json.Unmarshal(data, &localState)
 	}
 
-	// A full official archive is used for first installs and version upgrades.
-	// It replaces only server-owned folders, never saves, screenshots, options, or player files.
-	if manifest.Archive != nil && (manifest.Archive.URL != "" || len(manifest.Archive.URLs) > 0) && !localState.LegacyMigrated && localState.SyncedVersion != manifest.Version {
-		if localState.SyncedVersion != "" {
-			if err := clearArchiveManagedPaths(instancePath); err != nil {
-				return err
-			}
-		}
+	// A full official archive is used ONLY for first installs from scratch when mods folder is empty
+	hasLocalMods := false
+	if entries, err := os.ReadDir(filepath.Join(instancePath, "mods")); err == nil && len(entries) > 10 {
+		hasLocalMods = true
+	}
+
+	if manifest.Archive != nil && (manifest.Archive.URL != "" || len(manifest.Archive.URLs) > 0) && !localState.LegacyMigrated && !hasLocalMods && localState.SyncedVersion == "" {
 		if err := installArchive(instancePath, manifest.Archive); err != nil {
 			return err
 		}

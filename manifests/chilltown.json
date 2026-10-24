@@ -3,8 +3,8 @@
   "name": "Chill Town",
   "tagline": "Ẩm thực, nông nghiệp và cơ giới hóa",
   "description": "Modpack chính thức của máy chủ Chill Town (Bản 1.0.0 Release).",
-  "version": "1.0.0",
-  "changelog": "Bản phát hành chính thức Chill Town 1.0.0 Release (Forge 1.20.1, 246 mods, SDM Shop kinh tế và chuỗi nhiệm vụ chuyên sâu).",
+  "version": "1.0.1",
+  "changelog": "Bổ sung [农场物语-沉浸式饮用] Drink & Inspect Anim và AmbientSounds v6.3.8 âm thanh môi trường sống động.",
   "gameVersion": "1.20.1",
   "loader": "forge",
   "loaderVersion": "47.4.10",
@@ -23,9 +23,22 @@
       "url": "https://github.com/TieuLong07/camlauncher/releases/download/v0.1.5-alpha/Quick-Skin-Forge-1.20.1-3.1.1.jar",
       "sha1": "7176ecf01c607567e48faacfd4f4d66b4bb1dbb2",
       "size": 5489545
+    },
+    {
+      "path": "mods/[农场物语-沉浸式饮用]drink_anim-1.8.62.jar",
+      "url": "https://github.com/TieuLong07/camlauncher/releases/download/chilltown-v1.0.1/drink_anim-1.8.62.jar",
+      "sha1": "d94e2c3781822a43c2a66823dd7341628af6f313",
+      "size": 2538997
+    },
+    {
+      "path": "mods/AmbientSounds_FORGE_v6.3.8_mc1.20.1.jar",
+      "url": "https://github.com/TieuLong07/camlauncher/releases/download/chilltown-v1.0.1/AmbientSounds_FORGE_v6.3.8_mc1.20.1.jar",
+      "sha1": "87ea0cd8ec56763185ee0db09eec7c676969e4da",
+      "size": 53429226
     }
   ],
   "expectedMods": [
+    "AmbientSounds_FORGE_v6.3.8_mc1.20.1.jar",
     "CustomNPCs-1.20.1-GBPort-Unofficial-1.20.1.20260711.jar",
     "FallingTree-1.20.1-4.3.4.jar",
     "Forgematica-0.1.13-mc1.20.1.jar",
@@ -95,6 +108,7 @@
     "[农场物语-核心]farmingtales_core-1.0.1.jar",
     "[农场物语-武器槽]weaponslot-forge-1.20.1-1.0.0.jar",
     "[农场物语-死亡提示]farmingtales-elbow-death-messages-1.1.2.jar",
+    "[农场物语-沉浸式饮用]drink_anim-1.8.62.jar",
     "[农场物语-精妙背包刷物品修复]sophisticated_create_dupe_fix-1.0.1.jar",
     "[农场物语飞车收割机]farmingtales-automobility-harvester-replant-1.0.0.jar",
     "[农夫乐事] FarmersDelight-1.20.1-1.3.2.jar",

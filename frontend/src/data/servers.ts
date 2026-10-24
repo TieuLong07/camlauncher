@@ -27,10 +27,10 @@ export const RECOMMENDED_SERVERS: RecommendedServerItem[] = [
     id: 'chilltown',
     serverId: 'chilltown',
     title: 'Chill Town',
-    version: 'Forge 1.20.1 (v1.0.0)',
+    version: 'Forge 1.20.1 (v1.0.1)',
     loader: 'forge',
     iconKey: 'flask',
-    subtitle: 'Forge 1.20.1 • Bản 1.0.0 Release',
+    subtitle: 'Forge 1.20.1 • Bản 1.0.1 Release',
     btnText: 'CHƠI',
     bannerUrl:
       'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1400&q=80',

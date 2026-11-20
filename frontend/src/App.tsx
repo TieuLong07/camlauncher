@@ -5,8 +5,8 @@ import {
 import {
   AutoSetupEnvironment, CheckEnvironmentSetup, CheckLauncherUpdate, CheckOfficialModpack,
   SyncOfficialModpack, GetAccounts,
-  GetActiveAccount, GetAppVersion, GetInstances, GetServerLiveStatus, GetSystemStats, GetTunnelStatus, KillGame, LaunchGame,
-  OpenInstanceFolder, StartTunnel, ToggleTunnel,
+  GetActiveAccount, GetAppVersion, GetInstances, GetSystemStats, GetTunnelStatus, KillGame, LaunchGame,
+  OpenInstanceFolder, StartOfficialTunnel, StopTunnel,
 } from '../wailsjs/go/main/App';
 import { models, tunnel } from '../wailsjs/go/models';
 import { EventsOn } from '../wailsjs/runtime/runtime';
@@ -213,7 +213,8 @@ export function App() {
   const toggleTunnel = async () => {
     setTunnelBusy(true);
     try {
-      setTunnelStatus(await ToggleTunnel());
+      const current = await GetTunnelStatus();
+      setTunnelStatus(current.running && current.serverTarget?.endsWith(`:${selectedServer.serverPort}`) ? await StopTunnel() : await StartOfficialTunnel(selectedServer.id));
     } catch (error) {
       showToast(`Không thể đổi trạng thái Cam Tunnel. ${error}`);
     } finally {
@@ -253,20 +254,17 @@ export function App() {
         setInstances((previous) => [...previous.filter((instance) => instance.id !== installed.id), installed]);
         await checkPack(selectedServer);
       } else if (playableInstance) {
-        if (fromServer && selectedServer.id === 'chilltown' && !skipConnection) {
+        if (fromServer && !skipConnection) {
           const status = await GetTunnelStatus();
-          if (!status.running) {
-            setActivity({ ...pending, label: 'Đang kết nối Chill Town…' });
+          if (!status.running || !status.serverTarget?.endsWith(`:${selectedServer.serverPort}`)) {
+            setActivity({ ...pending, label: `Đang kết nối ${title}…` });
             try {
-              const connected = await StartTunnel();
+              const connected = await StartOfficialTunnel(selectedServer.id);
               setTunnelStatus(connected);
               if (!connected.running) throw new Error('Cam Tunnel chưa kết nối.');
             } catch (error) {
-              const direct = await GetServerLiveStatus().catch(() => null);
-              if (!direct?.online) {
-                setActionError({ title, message: String(error), offlineAvailable: true });
-                return;
-              }
+              setActionError({ title, message: String(error), offlineAvailable: true });
+              return;
             }
           }
         }

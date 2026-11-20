@@ -138,6 +138,7 @@ func (m *TunnelManager) Start(authKey, target string) (*TunnelStatus, error) {
 	}
 
 	if authKey == "" {
+		m.mu.Unlock()
 		return nil, fmt.Errorf("chưa có phiên P2P hợp lệ")
 	}
 	if target == "" {
@@ -207,12 +208,21 @@ func (m *TunnelManager) Start(authKey, target string) (*TunnelStatus, error) {
 	// Test ping/handshake latency
 	t0 := time.Now()
 	testCtx, testCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	var latency int64 = 18
-	if testConn, err := server.Dial(testCtx, "tcp", target); err == nil {
-		latency = time.Since(t0).Milliseconds()
-		_ = testConn.Close()
-	}
+	testConn, dialErr := server.Dial(testCtx, "tcp", target)
 	testCancel()
+	if dialErr != nil {
+		_ = listener.Close()
+		_ = server.Close()
+		_ = os.RemoveAll(tempDir)
+		m.mu.Lock()
+		m.lastError = fmt.Sprintf("Không kết nối được máy chủ: %v", dialErr)
+		m.statusText = "Không kết nối được máy chủ"
+		m.notifyLocked()
+		m.mu.Unlock()
+		return nil, fmt.Errorf("không kết nối được máy chủ qua Cam Tunnel: %w", dialErr)
+	}
+	latency := time.Since(t0).Milliseconds()
+	_ = testConn.Close()
 
 	mCtx, mCancel := context.WithCancel(context.Background())
 

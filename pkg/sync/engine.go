@@ -327,7 +327,7 @@ func getOrDownloadArchive(archive *models.ModpackArchive, progressFn func(models
 			out.Close()
 			return ""
 		}
-		req.Header.Set("User-Agent", "CamLauncher/0.5.0 (ModpackSync)")
+		req.Header.Set("User-Agent", "CamLauncher/0.5.1 (ModpackSync)")
 		resp, err := client.Do(req)
 		if err != nil {
 			out.Close()

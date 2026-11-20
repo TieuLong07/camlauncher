@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"net"
 	"testing"
 	"time"
 )
@@ -25,6 +26,11 @@ func TestBrokerTunnelConnects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	host, _, err := net.SplitHostPort(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target = net.JoinHostPort(host, "25567")
 	manager := NewTunnelManager(nil)
 	status, err := manager.Start(key, target)
 	if err != nil {

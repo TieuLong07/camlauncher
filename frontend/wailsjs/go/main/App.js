@@ -206,6 +206,10 @@ export function StartMicrosoftAuth() {
   return window['go']['main']['App']['StartMicrosoftAuth']();
 }
 
+export function StartOfficialTunnel(arg1) {
+  return window['go']['main']['App']['StartOfficialTunnel'](arg1);
+}
+
 export function StartTunnel() {
   return window['go']['main']['App']['StartTunnel']();
 }

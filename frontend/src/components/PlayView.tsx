@@ -33,7 +33,8 @@ export function PlayView({
   const isKamaron = Boolean(selectedServer.isKamaron);
   const isChillTown = selectedServer.id === 'chilltown';
   const hasStatus = isChillTown || isKamaron;
-  const tunnelInactive = isChillTown && tunnelStatus?.running === false;
+  const tunnelInactive = !tunnelStatus?.running || !tunnelStatus.serverTarget?.endsWith(`:${selectedServer.serverPort}`);
+  const address = !tunnelInactive ? `127.0.0.1:${tunnelStatus?.localPort}` : 'Bật Cam Tunnel để lấy địa chỉ';
 
   useEffect(() => {
     let cancelled = false;
@@ -77,11 +78,11 @@ export function PlayView({
         : pingError || liveStatus?.online === false ? 'Không liên lạc được' : 'Đang kiểm tra…';
   const connectionDetail = liveStatus?.online ? `${liveStatus.players}/${liveStatus.maxPlayers} người chơi · ${liveStatus.pingMs} ms`
     : tunnelInactive ? 'CamLauncher sẽ kết nối khi chơi.'
-      : isChillTown ? 'Kết nối qua Cam Tunnel.' : 'Kết nối trực tiếp tới máy chủ.';
+      : 'Kết nối qua Cam Tunnel.';
 
   const copyAddress = async () => {
     try {
-      await navigator.clipboard.writeText(selectedServer.serverAddress);
+      await navigator.clipboard.writeText(address);
       showToast('Đã sao chép địa chỉ máy chủ.');
     } catch {
       showToast('Không thể sao chép địa chỉ máy chủ.');
@@ -166,12 +167,12 @@ export function PlayView({
         <details className="server-details">
           <summary><ChevronDown size={16} /> Chi tiết kết nối</summary>
           <div className="server-details-content">
-            <button className="cam-button" onClick={copyAddress}><Copy size={16} /> {selectedServer.serverAddress}</button>
-            {isChillTown && <button className="cam-button" onClick={onToggleTunnel} disabled={tunnelBusy}
-              aria-pressed={Boolean(tunnelStatus?.running)}>
-              <Zap size={16} /> {tunnelBusy ? 'Đang đổi kết nối…' : tunnelStatus?.running ? 'Tắt Cam Tunnel' : 'Bật Cam Tunnel'}
+            <button className="cam-button" onClick={copyAddress}><Copy size={16} /> {address}</button>
+            {hasStatus && <button className="cam-button" onClick={onToggleTunnel} disabled={tunnelBusy}
+              aria-pressed={!tunnelInactive}>
+              <Zap size={16} /> {tunnelBusy ? 'Đang đổi kết nối…' : !tunnelInactive ? 'Tắt Cam Tunnel' : 'Bật Cam Tunnel'}
             </button>}
-            <span>{isChillTown ? 'Địa chỉ cục bộ dùng khi Cam Tunnel đang bật.' : isKamaron ? 'Kết nối qua mạng Tailscale.' : selectedServer.region}</span>
+            <span>{'Địa chỉ cục bộ dùng khi Cam Tunnel đang bật.'}</span>
           </div>
         </details>
       </div>

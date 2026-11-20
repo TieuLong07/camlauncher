@@ -225,7 +225,7 @@ func installPack(client *http.Client, baseURL, slug, gameVersion, projectType, i
 	if err != nil {
 		return "", err
 	}
-	request.Header.Set("User-Agent", "CamLauncher/0.5.0")
+	request.Header.Set("User-Agent", "CamLauncher/0.5.1")
 	response, err := client.Do(request)
 	if err != nil {
 		return "", err
@@ -256,7 +256,7 @@ func installPack(client *http.Client, baseURL, slug, gameVersion, projectType, i
 	if err != nil {
 		return "", err
 	}
-	request.Header.Set("User-Agent", "CamLauncher/0.5.0")
+	request.Header.Set("User-Agent", "CamLauncher/0.5.1")
 	response, err = client.Do(request)
 	if err != nil {
 		return "", err
@@ -299,7 +299,7 @@ func installPack(client *http.Client, baseURL, slug, gameVersion, projectType, i
 	if err != nil {
 		return "", err
 	}
-	request.Header.Set("User-Agent", "CamLauncher/0.5.0")
+	request.Header.Set("User-Agent", "CamLauncher/0.5.1")
 	response, err = client.Do(request)
 	if err != nil {
 		return "", err

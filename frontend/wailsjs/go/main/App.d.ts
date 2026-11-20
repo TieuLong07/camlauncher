@@ -106,6 +106,8 @@ export function SetDefaultJavaPath(arg1:string):Promise<void>;
 
 export function StartMicrosoftAuth():Promise<auth.DeviceCodeResult>;
 
+export function StartOfficialTunnel(arg1:string):Promise<tunnel.TunnelStatus>;
+
 export function StartTunnel():Promise<tunnel.TunnelStatus>;
 
 export function StopTunnel():Promise<tunnel.TunnelStatus>;

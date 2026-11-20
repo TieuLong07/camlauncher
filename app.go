@@ -14,6 +14,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -222,6 +223,37 @@ func (a *App) StartTunnel() (*tunnel.TunnelStatus, error) {
 	return a.tunnelMgr.Start(authKey, target)
 }
 
+// StartOfficialTunnel connects the selected official server through CamTunnel.
+func (a *App) StartOfficialTunnel(serverID string) (*tunnel.TunnelStatus, error) {
+	var port string
+	switch serverID {
+	case "chilltown":
+		port = "25565"
+	case "kamaron":
+		port = "25567"
+	default:
+		return nil, fmt.Errorf("máy chủ không hỗ trợ Cam Tunnel")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	key, target, err := tunnel.RequestBrokerCredential(ctx)
+	if err != nil {
+		return nil, err
+	}
+	host, _, err := net.SplitHostPort(target)
+	if err != nil {
+		return nil, fmt.Errorf("địa chỉ tunnel không hợp lệ: %w", err)
+	}
+	target = net.JoinHostPort(host, port)
+	current := a.tunnelMgr.GetStatus()
+	if current.Running && current.ServerTarget != target {
+		if err := a.tunnelMgr.Stop(); err != nil {
+			return nil, err
+		}
+	}
+	return a.tunnelMgr.Start(key, target)
+}
+
 func (a *App) StopTunnel() (*tunnel.TunnelStatus, error) {
 	if a.tunnelMgr == nil {
 		return nil, nil
@@ -296,6 +328,14 @@ func (a *App) GetLoaderVersions(gameVersion, loader string) (*models.LoaderVersi
 
 // GetServerLiveStatus returns real-time SLP ping and player count from Minecraft server
 func (a *App) GetServerLiveStatus() *models.ServerLiveStatus {
+	status := a.tunnelMgr.GetStatus()
+	if status.Running && strings.HasSuffix(status.ServerTarget, ":25567") {
+		result, err := minecraft.PingServerAddress("192.168.1.7:25565", 1200*time.Millisecond)
+		if err == nil {
+			return result
+		}
+		return &models.ServerLiveStatus{Online: false, PingMs: -1, MOTD: "Chill Town ngoại tuyến"}
+	}
 	return minecraft.GetServerLiveStatus()
 }
 
@@ -651,6 +691,14 @@ func (a *App) SyncOfficialModpack(serverID string) (*models.Instance, error) {
 // GetKamaronLiveStatus pings the Kamaron server directly on its own port so the
 // card never reports Chill Town's status.
 func (a *App) GetKamaronLiveStatus() *models.ServerLiveStatus {
+	status := a.tunnelMgr.GetStatus()
+	if status.Running && strings.HasSuffix(status.ServerTarget, ":25567") {
+		result, err := minecraft.PingServerAddress(fmt.Sprintf("127.0.0.1:%d", status.LocalPort), 1500*time.Millisecond)
+		if err == nil {
+			return result
+		}
+	}
+
 	candidates := []string{
 		"100.117.75.101:25567",
 		"192.168.1.7:25567",

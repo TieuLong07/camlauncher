@@ -6,6 +6,12 @@
   "frontend:build": "npm.cmd run build",
   "frontend:dev:watcher": "npm.cmd run dev",
   "frontend:dev:serverUrl": "auto",
+  "info": {
+    "companyName": "Owlys Studio",
+    "productName": "CamLauncher",
+    "productVersion": "0.4.0",
+    "copyright": "Owlys Studio"
+  },
   "author": {
     "name": "TiCa",
     "email": "contact@ticalauncher.dev"

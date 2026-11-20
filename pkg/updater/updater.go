@@ -6,21 +6,21 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/mod/semver"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
 
 const (
-	CurrentLauncherVersion    = "0.3.0-beta"
+	CurrentLauncherVersion    = "0.4.0-beta"
 	DefaultUpdateManifestURL  = "https://raw.githubusercontent.com/TieuLong07/camlauncher/main/manifests/launcher.json"
-	FallbackUpdateManifestURL = "https://apps.owlys.io.vn/CamLauncher/releases/latest.json"
+	FallbackUpdateManifestURL = "https://owlys.io.vn/CamLauncher/releases/latest.json"
 )
 
 // GetAppVersion returns the hardcoded current application version
@@ -63,39 +63,48 @@ func CheckLauncherUpdate(manifestURL string) (*models.LauncherUpdateInfo, error)
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(manifestURL)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		if resp != nil && resp.Body != nil {
-			_ = resp.Body.Close()
+	urls := []string{manifestURL}
+	if manifestURL != FallbackUpdateManifestURL {
+		urls = append(urls, FallbackUpdateManifestURL)
+	}
+	return fetchManifest(client, urls)
+}
+
+func fetchManifest(client *http.Client, urls []string) (*models.LauncherUpdateInfo, error) {
+	var lastErr error
+	for _, url := range urls {
+		resp, err := client.Get(url)
+		if err != nil {
+			lastErr = err
+			continue
 		}
-		// Try fallback endpoint
-		if manifestURL != FallbackUpdateManifestURL {
-			resp, err = client.Get(FallbackUpdateManifestURL)
+		if resp.StatusCode != http.StatusOK {
+			lastErr = fmt.Errorf("máy chủ cập nhật trả về mã HTTP %d", resp.StatusCode)
+			resp.Body.Close()
+			continue
 		}
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+		resp.Body.Close()
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		var info models.LauncherUpdateInfo
+		if err := json.Unmarshal(body, &info); err != nil {
+			lastErr = err
+			continue
+		}
+		v := "v" + strings.TrimPrefix(strings.TrimSpace(info.LatestVersion), "v")
+		_, hashErr := hex.DecodeString(info.SHA256)
+		if !semver.IsValid(v) || !strings.HasPrefix(info.DownloadURL, "https://") || len(info.SHA256) != 64 || hashErr != nil {
+			lastErr = fmt.Errorf("thông tin cập nhật không hợp lệ")
+			continue
+		}
+		info.CurrentVersion = CurrentLauncherVersion
+		info.HasUpdate = isNewerVersion(info.LatestVersion, CurrentLauncherVersion)
+		return &info, nil
 	}
-	if err != nil {
-		return nil, fmt.Errorf("không thể kết nối kiểm tra cập nhật launcher: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("máy chủ cập nhật trả về mã HTTP %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var info models.LauncherUpdateInfo
-	if err := json.Unmarshal(body, &info); err != nil {
-		return nil, fmt.Errorf("file thông tin cập nhật không hợp lệ: %w", err)
-	}
-
-	info.CurrentVersion = CurrentLauncherVersion
-	info.HasUpdate = isNewerVersion(info.LatestVersion, CurrentLauncherVersion)
-
-	return &info, nil
+	return nil, fmt.Errorf("không thể kiểm tra cập nhật: %v", lastErr)
 }
 
 // ApplyLauncherUpdate downloads the new .exe, hot-replaces it, and relaunches the app
@@ -104,6 +113,12 @@ func ApplyLauncherUpdate(
 	expectedSHA256 string,
 	progressFn func(models.ProgressEvent),
 ) error {
+	if len(expectedSHA256) != 64 {
+		return fmt.Errorf("SHA256 bản cập nhật không hợp lệ")
+	}
+	if _, err := hex.DecodeString(expectedSHA256); err != nil {
+		return fmt.Errorf("SHA256 bản cập nhật không hợp lệ")
+	}
 	currentExe, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("không thể xác định vị trí file exe hiện tại: %w", err)
@@ -216,65 +231,49 @@ func ApplyLauncherUpdate(
 		})
 	}
 
-	// 3. Hot-replacement on Windows
-	oldExe := currentExe + ".old"
-	_ = os.Remove(oldExe)
-
-	// Try in-process NTFS rename trick
-	renameErr := os.Rename(currentExe, oldExe)
-	if renameErr == nil {
-		moveErr := os.Rename(tmpExe, currentExe)
-		if moveErr == nil {
-			// Spawns the new process
-			cmd := exec.Command(currentExe)
-			cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
-			_ = cmd.Start()
-			// Exit current process cleanly
-			os.Exit(0)
-			return nil
-		}
+	// Replace transactionally. If either placement or launch fails, restore the
+	// original and keep this process alive to surface the error to the user.
+	if err := replaceExecutable(currentExe, tmpExe); err != nil {
+		return err
 	}
-
-	// Fallback: PowerShell supervisor helper script that waits for our PID to die, replaces exe, and launches it
-	pid := os.Getpid()
-	psScript := fmt.Sprintf(`
-		Start-Sleep -Milliseconds 500;
-		Wait-Process -Id %d -ErrorAction SilentlyContinue;
-		Move-Item -Force '%s' '%s';
-		Start-Process '%s';
-	`, pid, tmpExe, currentExe, currentExe)
-
-	cmd := exec.Command("powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", psScript)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	_ = cmd.Start()
-
-	// Exit current process
+	cmd := exec.Command(currentExe)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
+	if err := cmd.Start(); err != nil {
+		if removeErr := os.Remove(currentExe); removeErr != nil {
+			return fmt.Errorf("không thể mở bản mới: %v; không thể gỡ bản mới để khôi phục: %w", err, removeErr)
+		}
+		if restoreErr := os.Rename(currentExe+".old", currentExe); restoreErr != nil {
+			return fmt.Errorf("không thể mở bản mới: %v; bản cũ được giữ tại %s: %w", err, currentExe+".old", restoreErr)
+		}
+		return fmt.Errorf("không thể mở bản mới, đã khôi phục bản cũ: %w", err)
+	}
 	os.Exit(0)
 	return nil
 }
 
-func isNewerVersion(latest, current string) bool {
-	lParts := parseVersion(latest)
-	cParts := parseVersion(current)
-
-	for i := 0; i < len(lParts) && i < len(cParts); i++ {
-		if lParts[i] > cParts[i] {
-			return true
-		}
-		if lParts[i] < cParts[i] {
-			return false
-		}
+// replaceExecutable leaves the original at .old on success and restores it on
+// failure. Existing .old files are never removed silently.
+func replaceExecutable(current, replacement string) error {
+	old := current + ".old"
+	if _, err := os.Stat(old); err == nil {
+		return fmt.Errorf("bản sao cũ vẫn tồn tại tại %s; không thể cập nhật an toàn", old)
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("không thể kiểm tra bản sao cũ: %w", err)
 	}
-	return len(lParts) > len(cParts)
+	if err := os.Rename(current, old); err != nil {
+		return fmt.Errorf("không thể lưu bản hiện tại: %w", err)
+	}
+	if err := os.Rename(replacement, current); err != nil {
+		if restoreErr := os.Rename(old, current); restoreErr != nil {
+			return fmt.Errorf("không thể cài bản mới: %v; bản cũ được giữ tại %s: %w", err, old, restoreErr)
+		}
+		return fmt.Errorf("không thể cài bản mới, đã khôi phục bản cũ: %w", err)
+	}
+	return nil
 }
 
-func parseVersion(v string) []int {
-	v = strings.TrimPrefix(strings.TrimSpace(v), "v")
-	parts := strings.Split(v, ".")
-	var nums []int
-	for _, p := range parts {
-		n, _ := strconv.Atoi(p)
-		nums = append(nums, n)
-	}
-	return nums
+func isNewerVersion(latest, current string) bool {
+	normalize := func(v string) string { return "v" + strings.TrimPrefix(strings.TrimSpace(v), "v") }
+	l, c := normalize(latest), normalize(current)
+	return semver.IsValid(l) && semver.IsValid(c) && semver.Compare(l, c) > 0
 }

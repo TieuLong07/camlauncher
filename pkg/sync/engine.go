@@ -287,16 +287,7 @@ func SyncServerModpack(
 			}
 		}
 
-		// Purge extra mods
-		if entries, err := os.ReadDir(modsDir); err == nil {
-			for _, entry := range entries {
-				if !entry.IsDir() && strings.HasSuffix(strings.ToLower(entry.Name()), ".jar") {
-					if !expectedSet[strings.ToLower(entry.Name())] {
-						_ = os.Remove(filepath.Join(modsDir, entry.Name()))
-					}
-				}
-			}
-		}
+		// Preserve extra user-installed mods; report drift rather than deleting them.
 
 		// Check which expected mods are missing from disk
 		var missingFromArchive []string
@@ -356,6 +347,20 @@ func SyncServerModpack(
 		err := minecraft.DownloadBatch(tasks, 12, manifest.ID, "syncing_modpack", progressFn)
 		if err != nil {
 			return fmt.Errorf("lỗi đồng bộ modpack: %w", err)
+		}
+	}
+
+	// Require every expected mod before recording a successful sync.
+	for _, name := range manifest.ExpectedMods {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		if filepath.Base(name) != name {
+			return fmt.Errorf("tên mod không hợp lệ: %s", name)
+		}
+		if info, err := os.Stat(filepath.Join(instancePath, "mods", name)); err != nil || !info.Mode().IsRegular() {
+			return fmt.Errorf("đồng bộ chưa hoàn tất, thiếu mod %s", name)
 		}
 	}
 

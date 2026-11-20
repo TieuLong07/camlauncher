@@ -1129,14 +1129,7 @@ func (a *App) GetAppVersion() string {
 }
 
 func (a *App) CheckLauncherUpdate() (*models.LauncherUpdateInfo, error) {
-	manifestURL := updater.DefaultUpdateManifestURL
-	// Check if local test manifest exists in LauncherDir
-	localTestManifest := filepath.Join(a.store.LauncherDir, "sample_launcher_update.json")
-	if _, err := os.Stat(localTestManifest); err == nil {
-		manifestURL = "file://" + filepath.ToSlash(localTestManifest)
-	}
-
-	return updater.CheckLauncherUpdate(manifestURL)
+	return updater.CheckLauncherUpdate(updater.DefaultUpdateManifestURL)
 }
 
 func (a *App) ApplyLauncherUpdate(downloadURL, sha256 string) error {

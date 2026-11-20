@@ -37,6 +37,8 @@ interface PlayViewProps {
   isSyncing?: boolean;
   onTriggerSync?: () => void;
   onUpdateStatusChanged?: (res: models.UpdateCheckResult) => void;
+  installedServerIds?: string[];
+  onInstalled?: () => void;
 }
 
 export const PlayView: React.FC<PlayViewProps> = ({
@@ -49,6 +51,8 @@ export const PlayView: React.FC<PlayViewProps> = ({
   isSyncing = false,
   onTriggerSync,
   onUpdateStatusChanged,
+  installedServerIds = [],
+  onInstalled,
 }) => {
   const [copiedIp, setCopiedIp] = useState(false);
   const [liveStatus, setLiveStatus] = useState<models.ServerLiveStatus | null>(null);
@@ -58,6 +62,7 @@ export const PlayView: React.FC<PlayViewProps> = ({
   const [installingKamaron, setInstallingKamaron] = useState(false);
 
   const isKamaron = Boolean(selectedServer.isKamaron);
+  const isInstalled = installedServerIds.includes(selectedServer.id);
 
   useEffect(() => {
     if (officialUpdate) {
@@ -126,6 +131,7 @@ export const PlayView: React.FC<PlayViewProps> = ({
       if (showToast) showToast('Đang tải & cài Kamaron (434 MB)...');
       const inst = await EnsureOfficialKamaron();
       if (showToast) showToast(`Đã cài Kamaron vào ${inst.path}. Bấm CHƠI để vào game!`);
+      if (onInstalled) onInstalled();
       const refreshed = await CheckOfficialKamaronUpdate();
       setUpdateResult(refreshed);
       if (onUpdateStatusChanged) onUpdateStatusChanged(refreshed);
@@ -435,7 +441,7 @@ export const PlayView: React.FC<PlayViewProps> = ({
         <div className="relative z-10 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-white/10">
           {/* Modpack Sync Status */}
           <div className="flex items-center gap-3 flex-wrap">
-            {isKamaron && !updateResult ? (
+            {isKamaron && !isInstalled && !updateResult ? (
               <div className="flex items-center gap-2.5 flex-wrap">
                 <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300">
                   <Download className="w-3.5 h-3.5 text-emerald-400" />

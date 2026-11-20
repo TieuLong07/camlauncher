@@ -561,6 +561,12 @@ export const App: React.FC = () => {
                 officialUpdate={officialUpdate}
                 isSyncing={isSyncing}
                 onTriggerSync={handleDockPlayAction}
+                installedServerIds={instances
+                  .filter((i) => Boolean(i.serverId))
+                  .map((i) => i.serverId as string)}
+                onInstalled={() => {
+                  refreshData();
+                }}
                 onUpdateStatusChanged={(res) => {
                   setOfficialUpdate(res);
                   if (res?.hasUpdate) {

@@ -439,6 +439,27 @@ func (a *App) EnsureOfficialKamaron() (*models.Instance, error) {
 
 	existing := a.store.FindInstanceByServerID("kamaron")
 	if existing == nil {
+		// Adopt a pre-existing instances/kamaron folder (hand-installed packs are
+		// common) instead of creating a duplicate profile on the same path.
+		adopted := a.findInstanceAtPath(filepath.Join(a.store.LauncherDir, "instances", KamaronInstanceFolder))
+		if adopted != nil {
+			adopted.Name = manifest.Name
+			adopted.ServerID = "kamaron"
+			adopted.ServerSyncURL = OfficialKamaronManifestURL
+			adopted.ServerVersion = manifest.Version
+			adopted.GameVersion = manifest.GameVersion
+			adopted.Loader = manifest.Loader
+			if manifest.LoaderVersion != "" {
+				adopted.LoaderVersion = manifest.LoaderVersion
+			}
+			if updated, updateErr := a.store.UpdateInstance(*adopted); updateErr == nil {
+				existing = updated
+			} else {
+				existing = adopted
+			}
+		}
+	}
+	if existing == nil {
 		id := uuid.New().String()
 		inst := models.Instance{
 			ID:            id,
@@ -487,6 +508,19 @@ func (a *App) EnsureOfficialKamaron() (*models.Instance, error) {
 		existing = updated
 	}
 	return existing, nil
+}
+
+// findInstanceAtPath returns the instance already registered on the given
+// folder, ignoring case and separators, so adoption does not duplicate profiles.
+func (a *App) findInstanceAtPath(targetPath string) *models.Instance {
+	clean := filepath.Clean(targetPath)
+	for _, inst := range a.store.GetInstances() {
+		if strings.EqualFold(filepath.Clean(inst.Path), clean) {
+			copied := inst
+			return &copied
+		}
+	}
+	return nil
 }
 
 // CheckOfficialKamaronUpdate reports whether the local kamaron profile matches

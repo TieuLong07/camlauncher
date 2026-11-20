@@ -1,10 +1,10 @@
 {
-  "latestVersion": "0.4.0-beta",
-  "title": "CamLauncher Beta 0.4.0",
-  "changelog": "Bổ sung bộ cài Windows theo tài khoản người dùng; cải thiện kiểm tra phiên bản, xác thực SHA-256 và khôi phục khi cập nhật thất bại. Giữ lại mod cá nhân khi đồng bộ.",
-  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.4.0-beta/CamLauncher.exe",
-  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.4.0-beta/CamLauncher-Setup-0.4.0-beta.exe",
-  "setupSha256": "f3537c5787fbbd8933ab09fcc257129a39e5ada4545cdb652dcd2ae9186aa787",
-  "releaseDate": "2026-11-20",
-  "sha256": "f08ec2e630229ea76baf7b1994bd6faca0fd44282b238237ebc73f743fb0002f"
+  "latestVersion": "0.5.0-beta",
+  "title": "CamLauncher Beta 0.5.0",
+  "changelog": "Giao diện tông cam mới; cải thiện cài đặt và đồng bộ modpack Chill Town, Kamaron; kiểm tra mod sai lệch và bảo vệ dữ liệu cá nhân.",
+  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.0-beta/CamLauncher.exe",
+  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.0-beta/CamLauncher-Setup-0.5.0-beta.exe",
+  "setupSha256": "d66bef60fa0edb9fc95a41207226bc7c1e6bfb06340f57130b70740a524cadf2",
+  "releaseDate": "2026-11-21",
+  "sha256": "d3c87daca9bf5df89b7d8a9827415407dc73eb906dcb148dbfe056cd1fbbd609"
 }

@@ -301,6 +301,15 @@ func (a *App) GetServerLiveStatus() *models.ServerLiveStatus {
 
 const OfficialChillTownManifestURL = "https://raw.githubusercontent.com/TieuLong07/camlauncher/main/manifests/chilltown.json"
 
+// OfficialKamaronManifestURL points at the Kamaron (Lau Cam) modpack manifest.
+// Kamaron is a hybrid Forge 1.20.1 + Sinytra Connector pack migrated from the
+// owner's old rented host; the server runs it on port 25567.
+const OfficialKamaronManifestURL = "https://raw.githubusercontent.com/TieuLong07/camlauncher/main/manifests/kamaron.json"
+
+// KamaronInstanceFolder is the fixed folder name so the profile lands in
+// %APPDATA%\CamLauncher\instances\kamaron no matter what the manifest calls it.
+const KamaronInstanceFolder = "kamaron"
+
 // EnsureOfficialChillTown creates or migrates the official Cooking TQ profile,
 // then applies the latest Chill Town modpack before it can launch.
 func (a *App) EnsureOfficialChillTown() (*models.Instance, error) {
@@ -415,6 +424,117 @@ func (a *App) CheckOfficialServerUpdate() (*models.UpdateCheckResult, error) {
 
 // SyncOfficialChillTown downloads and applies the current official modpack.
 func (a *App) SyncOfficialChillTown() (*models.Instance, error) { return a.EnsureOfficialChillTown() }
+
+// EnsureOfficialKamaron creates the "kamaron" profile (fixed folder name) and
+// installs the Kamaron modpack. The profile always lands in
+// %APPDATA%\CamLauncher\instances\kamaron so repeat installs reuse one folder.
+func (a *App) EnsureOfficialKamaron() (*models.Instance, error) {
+	manifest, err := modsync.FetchServerManifest(OfficialKamaronManifestURL)
+	if err != nil {
+		return nil, fmt.Errorf("không thể tải thông tin Kamaron: %w", err)
+	}
+	if manifest.ID != "kamaron" || manifest.GameVersion != "1.20.1" || !strings.EqualFold(manifest.Loader, "forge") {
+		return nil, fmt.Errorf("manifest Kamaron không hợp lệ")
+	}
+
+	existing := a.store.FindInstanceByServerID("kamaron")
+	if existing == nil {
+		id := uuid.New().String()
+		inst := models.Instance{
+			ID:            id,
+			Name:          manifest.Name,
+			GameVersion:   manifest.GameVersion,
+			VersionType:   "release",
+			Loader:        manifest.Loader,
+			LoaderVersion: manifest.LoaderVersion,
+			Icon:          "skull",
+			MinMemoryMB:   manifest.MinMemoryMB,
+			MaxMemoryMB:   manifest.MaxMemoryMB,
+			Path:          filepath.Join(a.store.LauncherDir, "instances", KamaronInstanceFolder),
+			ServerSyncURL: OfficialKamaronManifestURL,
+			ServerID:      "kamaron",
+			ServerVersion: manifest.Version,
+			CreatedAt:     time.Now(),
+			LastPlayed:    time.Now(),
+		}
+		if inst.MinMemoryMB <= 0 {
+			inst.MinMemoryMB = 3072
+		}
+		if inst.MaxMemoryMB <= 0 {
+			inst.MaxMemoryMB = 6144
+		}
+		_ = os.MkdirAll(inst.Path, 0755)
+		a.store.AddInstance(inst)
+		existing = &inst
+	} else {
+		existing.ServerSyncURL = OfficialKamaronManifestURL
+		existing.LoaderVersion = manifest.LoaderVersion
+		if updated, updateErr := a.store.UpdateInstance(*existing); updateErr == nil {
+			existing = updated
+		}
+	}
+
+	progressCallback := func(evt models.ProgressEvent) {
+		if a.ctx != nil {
+			runtime.EventsEmit(a.ctx, "game:progress", evt)
+		}
+	}
+	if err := modsync.SyncServerModpack(existing.Path, manifest, progressCallback); err != nil {
+		return nil, err
+	}
+	existing.ServerVersion = manifest.Version
+	if updated, err := a.store.UpdateInstance(*existing); err == nil {
+		existing = updated
+	}
+	return existing, nil
+}
+
+// CheckOfficialKamaronUpdate reports whether the local kamaron profile matches
+// the published Kamaron manifest.
+func (a *App) CheckOfficialKamaronUpdate() (*models.UpdateCheckResult, error) {
+	target := a.store.FindInstanceByServerID("kamaron")
+	if target == nil {
+		manifest, err := modsync.FetchServerManifest(OfficialKamaronManifestURL)
+		if err != nil {
+			return nil, err
+		}
+		return &models.UpdateCheckResult{
+			ServerID:      manifest.ID,
+			ServerName:    manifest.Name,
+			LatestVersion: manifest.Version,
+			HasUpdate:     true,
+			Changelog:     manifest.Changelog,
+			Manifest:      manifest,
+		}, nil
+	}
+	return modsync.CheckServerUpdate(target.Path, OfficialKamaronManifestURL)
+}
+
+// SyncOfficialKamaron installs or refreshes the Kamaron modpack.
+func (a *App) SyncOfficialKamaron() (*models.Instance, error) { return a.EnsureOfficialKamaron() }
+
+// GetKamaronLiveStatus pings the Kamaron server directly on its own port so the
+// card never reports Chill Town's status.
+func (a *App) GetKamaronLiveStatus() *models.ServerLiveStatus {
+	candidates := []string{
+		"100.117.75.101:25567",
+		"192.168.1.7:25567",
+	}
+	for _, cand := range candidates {
+		status, err := minecraft.PingServerAddress(cand, 1500*time.Millisecond)
+		if err == nil && status != nil && status.Online {
+			return status
+		}
+	}
+	return &models.ServerLiveStatus{
+		Online:     false,
+		PingMs:     -1,
+		Players:    0,
+		MaxPlayers: 20,
+		Version:    "Forge 1.20.1",
+		MOTD:       "Kamaron đang tắt",
+	}
+}
 
 // CheckEnvironmentSetup scans Java installations and evaluates readiness for Chill Town
 func (a *App) CheckEnvironmentSetup() *models.EnvironmentSetupStatus {

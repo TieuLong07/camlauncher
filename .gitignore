@@ -11,3 +11,4 @@ NUL
 .env
 .env.*
 !.env.example
+.verify/

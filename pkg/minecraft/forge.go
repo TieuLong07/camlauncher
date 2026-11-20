@@ -245,23 +245,15 @@ func EnsureForgeClientInstalled(sharedDir, javaExe, gameVersion, forgeVersion st
 	if forgeVersion == "" {
 		var err error
 		forgeVersion, err = GetRecommendedForgeVersion(gameVersion)
-		if err != nil || forgeVersion == "" {
-			return nil
+		if err != nil {
+			return fmt.Errorf("không xác định được phiên bản Forge: %w", err)
+		}
+		if forgeVersion == "" {
+			return fmt.Errorf("chưa chọn phiên bản Forge")
 		}
 	}
 
-	targetJar := filepath.Join(sharedDir, "libraries", "net", "minecraftforge", "forge",
-		fmt.Sprintf("%s-%s", gameVersion, forgeVersion),
-		fmt.Sprintf("forge-%s-%s-client.jar", gameVersion, forgeVersion))
-
-	if _, err := os.Stat(targetJar); err == nil {
-		return nil // Already installed and present
-	}
-
-	// Also check if any client-*-srg.jar exists in libraries/net/minecraft/client
-	srgPattern := filepath.Join(sharedDir, "libraries", "net", "minecraft", "client", fmt.Sprintf("%s-*", gameVersion), "*-srg.jar")
-	matches, _ := filepath.Glob(srgPattern)
-	if len(matches) > 0 {
+	if err := verifyForgeClientInstalled(sharedDir, gameVersion, forgeVersion); err == nil {
 		return nil
 	}
 
@@ -276,7 +268,9 @@ func EnsureForgeClientInstalled(sharedDir, javaExe, gameVersion, forgeVersion st
 	// 1. Ensure launcher_profiles.json exists (Forge installer requires this file)
 	lpPath := filepath.Join(sharedDir, "launcher_profiles.json")
 	if _, err := os.Stat(lpPath); os.IsNotExist(err) {
-		_ = os.WriteFile(lpPath, []byte(`{"profiles":{}}`), 0644)
+		if err := os.WriteFile(lpPath, []byte(`{"profiles":{}}`), 0644); err != nil {
+			return fmt.Errorf("không tạo được launcher_profiles.json: %w", err)
+		}
 	}
 
 	// 2. Download Installer jar to cache
@@ -318,23 +312,53 @@ func EnsureForgeClientInstalled(sharedDir, javaExe, gameVersion, forgeVersion st
 	}
 
 	// 3. Run Forge installer headless
+	// javaw suppresses console diagnostics on Windows. Use java with a hidden console.
+	if strings.EqualFold(filepath.Base(javaExe), "javaw.exe") {
+		javaExe = filepath.Join(filepath.Dir(javaExe), "java.exe")
+	}
 	installerCmd := exec.Command(javaExe, "-jar", installerPath, "--installClient", sharedDir)
+	installerCmd.Dir = cacheDir
 	if runtime.GOOS == "windows" {
 		installerCmd.SysProcAttr = &syscall.SysProcAttr{
 			CreationFlags: 0x08000000, // CREATE_NO_WINDOW
 		}
 	}
 
-	_ = installerCmd.Run()
-
-	// Verify if the client jar or srg jar was generated
-	if _, err := os.Stat(targetJar); err == nil {
-		return nil
+	output, err := installerCmd.CombinedOutput()
+	logPath := filepath.Join(cacheDir, fmt.Sprintf("forge-%s-%s-install.log", gameVersion, forgeVersion))
+	_ = os.WriteFile(logPath, output, 0644)
+	if err != nil {
+		return fmt.Errorf("cài Forge %s thất bại: %w (log: %s)", forgeVersion, err, logPath)
 	}
-	matches, _ = filepath.Glob(srgPattern)
-	if len(matches) > 0 {
-		return nil
+	if err := verifyForgeClientInstalled(sharedDir, gameVersion, forgeVersion); err != nil {
+		return fmt.Errorf("cài Forge chưa đầy đủ: %w (log: %s)", err, logPath)
 	}
+	return nil
+}
 
+// Minecraft's SRG jar is shared across Forge releases; its presence does not
+// establish that the selected Forge release and its language providers exist.
+func verifyForgeClientInstalled(sharedDir, gameVersion, forgeVersion string) error {
+	version := gameVersion + "-" + forgeVersion
+	coordinates := []string{"net.minecraftforge:forge:" + version + ":client"}
+	var major int
+	_, _ = fmt.Sscanf(forgeVersion, "%d", &major)
+	if major >= 37 {
+		coordinates = append(coordinates,
+			"net.minecraftforge:forge:"+version+":universal",
+			"net.minecraftforge:fmlcore:"+version,
+			"net.minecraftforge:fmlloader:"+version,
+			"net.minecraftforge:javafmllanguage:"+version,
+			"net.minecraftforge:lowcodelanguage:"+version,
+			"net.minecraftforge:mclanguage:"+version,
+		)
+	}
+	for _, coordinate := range coordinates {
+		path := filepath.Join(sharedDir, "libraries", filepath.FromSlash(mavenCoordinateToPath(coordinate)))
+		info, err := os.Stat(path)
+		if err != nil || info.IsDir() || info.Size() == 0 {
+			return fmt.Errorf("thiếu thư viện %s", coordinate)
+		}
+	}
 	return nil
 }

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { RecommendedServerItem } from '../data/servers';
+import { RecommendedServerItem, RECOMMENDED_SERVERS } from '../data/servers';
 import { tunnel, models } from '../../wailsjs/go/models';
 import {
   GetServerLiveStatus,
+  GetKamaronLiveStatus,
   CheckOfficialServerUpdate,
+  CheckOfficialKamaronUpdate,
   SyncOfficialChillTown,
+  EnsureOfficialKamaron,
 } from '../../wailsjs/go/main/App';
 import {
   Shield,
@@ -20,6 +23,8 @@ import {
   Cpu,
   Coins,
   Zap,
+  Download,
+  Loader2,
 } from 'lucide-react';
 
 interface PlayViewProps {
@@ -36,6 +41,7 @@ interface PlayViewProps {
 
 export const PlayView: React.FC<PlayViewProps> = ({
   selectedServer,
+  onSelectServer,
   tunnelStatus,
   onToggleTunnel,
   showToast,
@@ -49,6 +55,9 @@ export const PlayView: React.FC<PlayViewProps> = ({
   const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateResult, setUpdateResult] = useState<models.UpdateCheckResult | null>(officialUpdate || null);
+  const [installingKamaron, setInstallingKamaron] = useState(false);
+
+  const isKamaron = Boolean(selectedServer.isKamaron);
 
   useEffect(() => {
     if (officialUpdate) {
@@ -56,10 +65,10 @@ export const PlayView: React.FC<PlayViewProps> = ({
     }
   }, [officialUpdate]);
 
-  // Poll live Minecraft Server List Ping (SLP)
+  // Poll live Minecraft Server List Ping (SLP) for whichever server is selected
   const fetchLiveStatus = async () => {
     try {
-      const res = await GetServerLiveStatus();
+      const res = isKamaron ? await GetKamaronLiveStatus() : await GetServerLiveStatus();
       setLiveStatus(res);
     } catch (e) {
       console.warn('Failed to get server live status:', e);
@@ -67,10 +76,12 @@ export const PlayView: React.FC<PlayViewProps> = ({
   };
 
   useEffect(() => {
+    setUpdateResult(null);
+    setLiveStatus(null);
     fetchLiveStatus();
     const timer = setInterval(fetchLiveStatus, 4000);
     return () => clearInterval(timer);
-  }, [tunnelStatus?.running]);
+  }, [tunnelStatus?.running, selectedServer.id]);
 
   const handleManualRefresh = async () => {
     setIsRefreshingStatus(true);
@@ -82,9 +93,12 @@ export const PlayView: React.FC<PlayViewProps> = ({
   const handleCheckUpdate = async () => {
     setCheckingUpdate(true);
     try {
-      const res = await CheckOfficialServerUpdate();
+      const res = isKamaron
+        ? await CheckOfficialKamaronUpdate()
+        : await CheckOfficialServerUpdate();
       setUpdateResult(res);
       if (onUpdateStatusChanged) onUpdateStatusChanged(res);
+      const packName = isKamaron ? 'Kamaron' : 'Chill Town';
       if (res.isDrifted) {
         if (showToast)
           showToast(
@@ -93,14 +107,32 @@ export const PlayView: React.FC<PlayViewProps> = ({
             } thừa). Bấm Đồng Bộ để sửa.`
           );
       } else if (res.hasUpdate) {
-        if (showToast) showToast(`Có bản cập nhật Chill Town ${res.latestVersion}. Bấm Cập Nhật để tải.`);
+        if (showToast) showToast(`Có bản cập nhật ${packName} ${res.latestVersion}. Bấm Cập Nhật để tải.`);
       } else {
-        if (showToast) showToast('Modpack Chill Town đã chuẩn và sẵn sàng.');
+        if (showToast) showToast(`Modpack ${packName} đã chuẩn và sẵn sàng.`);
       }
     } catch (err: any) {
       if (showToast) showToast(`Lỗi kiểm tra cập nhật: ${err}`);
     } finally {
       setCheckingUpdate(false);
+    }
+  };
+
+  // One-click install for Kamaron: downloads the client pack into
+  // %APPDATA%\CamLauncher\instances\kamaron
+  const handleInstallKamaron = async () => {
+    setInstallingKamaron(true);
+    try {
+      if (showToast) showToast('Đang tải & cài Kamaron (434 MB)...');
+      const inst = await EnsureOfficialKamaron();
+      if (showToast) showToast(`Đã cài Kamaron vào ${inst.path}. Bấm CHƠI để vào game!`);
+      const refreshed = await CheckOfficialKamaronUpdate();
+      setUpdateResult(refreshed);
+      if (onUpdateStatusChanged) onUpdateStatusChanged(refreshed);
+    } catch (err: any) {
+      if (showToast) showToast(`Lỗi cài Kamaron: ${err}`);
+    } finally {
+      setInstallingKamaron(false);
     }
   };
 
@@ -111,13 +143,21 @@ export const PlayView: React.FC<PlayViewProps> = ({
     }
     setCheckingUpdate(true);
     try {
-      await SyncOfficialChillTown();
-      const refreshed = await CheckOfficialServerUpdate();
-      setUpdateResult(refreshed);
-      if (onUpdateStatusChanged) onUpdateStatusChanged(refreshed);
-      if (showToast) showToast('Đã đồng bộ modpack Chill Town. Sẵn sàng chơi!');
+      if (isKamaron) {
+        await EnsureOfficialKamaron();
+        const refreshed = await CheckOfficialKamaronUpdate();
+        setUpdateResult(refreshed);
+        if (onUpdateStatusChanged) onUpdateStatusChanged(refreshed);
+        if (showToast) showToast('Đã đồng bộ modpack Kamaron. Sẵn sàng chơi!');
+      } else {
+        await SyncOfficialChillTown();
+        const refreshed = await CheckOfficialServerUpdate();
+        setUpdateResult(refreshed);
+        if (onUpdateStatusChanged) onUpdateStatusChanged(refreshed);
+        if (showToast) showToast('Đã đồng bộ modpack Chill Town. Sẵn sàng chơi!');
+      }
     } catch (err: any) {
-      if (showToast) showToast(`Lỗi đồng bộ Chill Town: ${err}`);
+      if (showToast) showToast(`Lỗi đồng bộ: ${err}`);
     } finally {
       setCheckingUpdate(false);
     }
@@ -135,6 +175,7 @@ export const PlayView: React.FC<PlayViewProps> = ({
   const pingVal = isServerOnline ? liveStatus?.pingMs || selectedServer.pingMs : selectedServer.pingMs;
   const currentOnlinePlayers = isServerOnline ? liveStatus?.players : 0;
   const maxOnlinePlayers = isServerOnline ? liveStatus?.maxPlayers : 20;
+  const packName = isKamaron ? 'Kamaron' : 'Chill Town';
 
   return (
     <main className="flex-1 overflow-y-auto flex flex-col select-none relative z-10 p-6 gap-5 box-border">
@@ -147,6 +188,38 @@ export const PlayView: React.FC<PlayViewProps> = ({
           <span className="status-pill rounded-full font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[11px] px-3 py-0.5 tracking-wide">
             Chính Thức
           </span>
+        </div>
+
+        {/* Server Selector Tabs */}
+        <div className="flex items-center gap-2 glass-panel border border-white/10 rounded-2xl p-1">
+          {RECOMMENDED_SERVERS.map((srv) => {
+            const active = srv.id === selectedServer.id;
+            return (
+              <button
+                key={srv.id}
+                onClick={() => onSelectServer && onSelectServer(srv)}
+                className={`status-pill rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  active
+                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/25'
+                    : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                }`}
+              >
+                {srv.iconKey === 'skull' ? (
+                  <Sparkles className="w-3.5 h-3.5" />
+                ) : (
+                  <Box className="w-3.5 h-3.5" />
+                )}
+                <span>{srv.title}</span>
+                <span
+                  className={`text-[10px] font-mono ${
+                    active ? 'text-slate-900/70' : 'text-slate-500'
+                  }`}
+                >
+                  {srv.serverPort}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Quick Connectivity Capsule */}
@@ -255,17 +328,17 @@ export const PlayView: React.FC<PlayViewProps> = ({
           <div className="flex items-center gap-2.5">
             <span className="status-pill rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 font-extrabold text-[11px] px-3 py-1 tracking-wider uppercase flex items-center gap-1.5">
               <Shield className="w-3.5 h-3.5 text-emerald-400" />
-              <span>CHILL TOWN COMMUNITY</span>
+              <span>{isKamaron ? 'KAMARON COMMUNITY' : 'CHILL TOWN COMMUNITY'}</span>
             </span>
 
             <span className="status-pill rounded-lg bg-white/[0.06] text-slate-300 border border-white/10 font-mono text-[11px] px-3 py-1">
-              Forge 1.20.1 • 246 Mods
+              Forge 1.20.1 • {isKamaron ? '87 Mods' : '246 Mods'}
             </span>
           </div>
 
           <span className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
             <Radio className="w-3.5 h-3.5 text-emerald-400" />
-            <span>P2P Direct Tunnel Ready</span>
+            <span>{isKamaron ? 'Tailscale Direct 25567' : 'P2P Direct Tunnel Ready'}</span>
           </span>
         </div>
 
@@ -276,23 +349,28 @@ export const PlayView: React.FC<PlayViewProps> = ({
           </h2>
 
           <p className="text-sm md:text-base text-slate-300 leading-relaxed max-w-2xl">
-            Thế giới sinh tồn ẩm thực kết hợp cơ giới hóa nông nghiệp cao cấp — Tích hợp hệ thống kinh tế SDM Shop, chuỗi nhiệm vụ và đồ hoạ shader tối ưu.
+            {selectedServer.description}
           </p>
 
           {/* Clean Tag Pills */}
           <div className="flex flex-wrap gap-2 pt-1">
-            <span className="status-pill bg-white/[0.05] hover:bg-white/[0.08] text-slate-200 border border-white/10 rounded-lg text-xs font-semibold px-3 py-1 flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>Tối Ưu FPS & Shader</span>
-            </span>
-            <span className="status-pill bg-white/[0.05] hover:bg-white/[0.08] text-slate-200 border border-white/10 rounded-lg text-xs font-semibold px-3 py-1 flex items-center gap-1.5">
-              <Box className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Farmer's Delight & Cơ Giới</span>
-            </span>
-            <span className="status-pill bg-white/[0.05] hover:bg-white/[0.08] text-slate-200 border border-white/10 rounded-lg text-xs font-semibold px-3 py-1 flex items-center gap-1.5">
-              <Coins className="w-3.5 h-3.5 text-cyan-400" />
-              <span>SDM Shop Kinh Tế</span>
-            </span>
+            {selectedServer.tags.map((tag, i) => (
+              <span
+                key={tag}
+                className="status-pill bg-white/[0.05] hover:bg-white/[0.08] text-slate-200 border border-white/10 rounded-lg text-xs font-semibold px-3 py-1 flex items-center gap-1.5"
+              >
+                {i === 0 ? (
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                ) : i === 1 ? (
+                  <Box className="w-3.5 h-3.5 text-emerald-400" />
+                ) : i === 2 ? (
+                  <Coins className="w-3.5 h-3.5 text-cyan-400" />
+                ) : (
+                  <Radio className="w-3.5 h-3.5 text-purple-400" />
+                )}
+                <span>{tag}</span>
+              </span>
+            ))}
           </div>
         </div>
 
@@ -303,8 +381,12 @@ export const PlayView: React.FC<PlayViewProps> = ({
               <Box className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-white tracking-wide truncate">246 Mods Nạp Sẵn</span>
-              <span className="text-[10.5px] text-slate-400 truncate">Tự động đồng bộ KubeJS</span>
+              <span className="text-xs font-bold text-white tracking-wide truncate">
+                {isKamaron ? '87 Mods Client' : '246 Mods Nạp Sẵn'}
+              </span>
+              <span className="text-[10.5px] text-slate-400 truncate">
+                {isKamaron ? 'Forge + Fabric hybrid' : 'Tự động đồng bộ KubeJS'}
+              </span>
             </div>
           </div>
 
@@ -314,7 +396,9 @@ export const PlayView: React.FC<PlayViewProps> = ({
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-bold text-white tracking-wide truncate">Forge 1.20.1</span>
-              <span className="text-[10.5px] text-slate-400 truncate">Java 17 LTS Adoptium</span>
+              <span className="text-[10.5px] text-slate-400 truncate">
+                {isKamaron ? 'Connector 1.0.0 beta' : 'Java 17 LTS Adoptium'}
+              </span>
             </div>
           </div>
 
@@ -323,8 +407,12 @@ export const PlayView: React.FC<PlayViewProps> = ({
               <Coins className="w-4 h-4 text-amber-400" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-white tracking-wide truncate">Kinh Tế & Quests</span>
-              <span className="text-[10.5px] text-slate-400 truncate">SDM Shop, FTB Quests</span>
+              <span className="text-xs font-bold text-white tracking-wide truncate">
+                {isKamaron ? 'Kinh Tế Lightman' : 'Kinh Tế & Quests'}
+              </span>
+              <span className="text-[10.5px] text-slate-400 truncate">
+                {isKamaron ? 'FTB Quests, FTB Chunks' : 'SDM Shop, FTB Quests'}
+              </span>
             </div>
           </div>
 
@@ -333,8 +421,12 @@ export const PlayView: React.FC<PlayViewProps> = ({
               <Radio className="w-4 h-4 text-cyan-400" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-white tracking-wide truncate">P2P WireGuard</span>
-              <span className="text-[10.5px] text-slate-400 truncate">Độ trễ thấp nội địa (~14ms)</span>
+              <span className="text-xs font-bold text-white tracking-wide truncate">
+                {isKamaron ? 'Tailscale 25567' : 'P2P WireGuard'}
+              </span>
+              <span className="text-[10.5px] text-slate-400 truncate">
+                {isKamaron ? 'VPS nhà, world 8.3GB' : 'Độ trễ thấp nội địa (~14ms)'}
+              </span>
             </div>
           </div>
         </div>
@@ -343,7 +435,26 @@ export const PlayView: React.FC<PlayViewProps> = ({
         <div className="relative z-10 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-white/10">
           {/* Modpack Sync Status */}
           <div className="flex items-center gap-3 flex-wrap">
-            {updateResult?.isDrifted ? (
+            {isKamaron && !updateResult ? (
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300">
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Chưa cài Kamaron trên máy này</span>
+                </div>
+                <button
+                  onClick={handleInstallKamaron}
+                  disabled={installingKamaron || isSyncing}
+                  className="status-pill px-4 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-md shadow-emerald-500/20 btn-tactile"
+                >
+                  {installingKamaron ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>{installingKamaron ? 'Đang Cài (434 MB)...' : 'Cài Kamaron (1 Chạm)'}</span>
+                </button>
+              </div>
+            ) : updateResult?.isDrifted ? (
               <div className="flex items-center gap-2.5 flex-wrap">
                 <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-1.5 text-xs text-amber-200">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
@@ -380,7 +491,7 @@ export const PlayView: React.FC<PlayViewProps> = ({
             ) : (
               <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-slate-300">Modpack Chill Town đã chuẩn và sẵn sàng</span>
+                <span className="text-slate-300">Modpack {packName} đã chuẩn và sẵn sàng</span>
               </div>
             )}
 

@@ -34,6 +34,10 @@ export function CheckLauncherUpdate() {
   return window['go']['main']['App']['CheckLauncherUpdate']();
 }
 
+export function CheckOfficialKamaronUpdate() {
+  return window['go']['main']['App']['CheckOfficialKamaronUpdate']();
+}
+
 export function CheckOfficialServerUpdate() {
   return window['go']['main']['App']['CheckOfficialServerUpdate']();
 }
@@ -62,6 +66,10 @@ export function EnsureOfficialChillTown() {
   return window['go']['main']['App']['EnsureOfficialChillTown']();
 }
 
+export function EnsureOfficialKamaron() {
+  return window['go']['main']['App']['EnsureOfficialKamaron']();
+}
+
 export function GetAccounts() {
   return window['go']['main']['App']['GetAccounts']();
 }
@@ -84,6 +92,10 @@ export function GetInstanceFiles(arg1, arg2) {
 
 export function GetInstances() {
   return window['go']['main']['App']['GetInstances']();
+}
+
+export function GetKamaronLiveStatus() {
+  return window['go']['main']['App']['GetKamaronLiveStatus']();
 }
 
 export function GetLoaderVersions(arg1, arg2) {
@@ -200,6 +212,10 @@ export function SyncCommunityServer(arg1) {
 
 export function SyncOfficialChillTown() {
   return window['go']['main']['App']['SyncOfficialChillTown']();
+}
+
+export function SyncOfficialKamaron() {
+  return window['go']['main']['App']['SyncOfficialKamaron']();
 }
 
 export function ToggleInstanceFile(arg1, arg2, arg3, arg4) {

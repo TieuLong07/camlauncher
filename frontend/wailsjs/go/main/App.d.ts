@@ -20,6 +20,8 @@ export function CheckEnvironmentSetup():Promise<models.EnvironmentSetupStatus>;
 
 export function CheckLauncherUpdate():Promise<models.LauncherUpdateInfo>;
 
+export function CheckOfficialKamaronUpdate():Promise<models.UpdateCheckResult>;
+
 export function CheckOfficialServerUpdate():Promise<models.UpdateCheckResult>;
 
 export function CheckServerUpdate(arg1:string):Promise<models.UpdateCheckResult>;
@@ -34,6 +36,8 @@ export function DeleteInstanceFile(arg1:string,arg2:string,arg3:string):Promise<
 
 export function EnsureOfficialChillTown():Promise<models.Instance>;
 
+export function EnsureOfficialKamaron():Promise<models.Instance>;
+
 export function GetAccounts():Promise<Array<models.Account>>;
 
 export function GetActiveAccount():Promise<models.Account>;
@@ -45,6 +49,8 @@ export function GetCommunityServers():Promise<Array<models.CommunityServerEntry>
 export function GetInstanceFiles(arg1:string,arg2:string):Promise<Array<models.InstanceFileItem>>;
 
 export function GetInstances():Promise<Array<models.Instance>>;
+
+export function GetKamaronLiveStatus():Promise<models.ServerLiveStatus>;
 
 export function GetLoaderVersions(arg1:string,arg2:string):Promise<models.LoaderVersionResult>;
 
@@ -103,6 +109,8 @@ export function StopTunnel():Promise<tunnel.TunnelStatus>;
 export function SyncCommunityServer(arg1:string):Promise<void>;
 
 export function SyncOfficialChillTown():Promise<models.Instance>;
+
+export function SyncOfficialKamaron():Promise<models.Instance>;
 
 export function ToggleInstanceFile(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<void>;
 

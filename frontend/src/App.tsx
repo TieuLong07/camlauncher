@@ -32,6 +32,8 @@ import {
   CreateInstance,
   EnsureOfficialChillTown,
   SyncOfficialChillTown,
+  EnsureOfficialKamaron,
+  CheckOfficialKamaronUpdate,
   GetTunnelStatus,
   StartTunnel,
   StopTunnel,
@@ -250,7 +252,29 @@ export const App: React.FC = () => {
     setActiveCategory('recommended');
     setAmbientWallpaper(server.bannerUrl);
 
-    // The only recommended server is Chill Town; never bind a personal profile here.
+    // Bind the matching profile for this server; never cross-bind profiles.
+    if (server.isKamaron) {
+      const kamaronInst = instances.find(
+        (i) => i.serverId === 'kamaron' || i.name.toLowerCase().includes('kamaron')
+      );
+      if (kamaronInst) setActiveInstance(kamaronInst);
+      else setActiveInstance(null);
+      setDockActionType('play');
+      setOfficialUpdate(null);
+      setDockData({
+        iconKey: server.iconKey,
+        title: server.title,
+        isOfficial: true,
+        badgeText: 'CHÍNH THỨC',
+        badgeClass:
+          'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20',
+        version: server.version,
+        subtitle: `${server.loader.toUpperCase()} • ${server.serverPort}`,
+        btnText: kamaronInst ? 'CHƠI' : 'CÀI & CHƠI',
+      });
+      return;
+    }
+
     const officialInst = instances.find(
       (i) => i.serverId === 'chilltown' || i.name.toLowerCase().includes('chill town') || i.name.toLowerCase().includes('cooking tq')
     );
@@ -352,28 +376,32 @@ export const App: React.FC = () => {
     if (activeCategory === 'recommended' && (dockActionType === 'update' || dockActionType === 'sync')) {
       try {
         setIsSyncing(true);
-        const actionLabel =
-          dockActionType === 'sync'
+        const isKam = Boolean(selectedServer.isKamaron);
+        const actionLabel = isKam
+          ? 'Đang đồng bộ lại mod Kamaron theo máy chủ...'
+          : dockActionType === 'sync'
             ? 'Đang đồng bộ lại danh sách mod theo máy chủ...'
             : 'Đang tải bản cập nhật modpack Chill Town...';
         showToast(actionLabel);
 
         setProgress({
-          instanceId: 'chilltown',
+          instanceId: selectedServer.id,
           stage: 'syncing_modpack',
           message: 'Đang kết nối & kiểm tra tệp tin...',
           percentage: 5,
-          currentItem: 'chilltown',
+          currentItem: selectedServer.id,
           completedItems: 0,
           totalItems: 1,
           speedKbps: 0,
         });
 
-        const official = await EnsureOfficialChillTown();
+        const official = isKam ? await EnsureOfficialKamaron() : await EnsureOfficialChillTown();
         await refreshData();
         setActiveInstance(official);
 
-        const refreshed = await CheckOfficialServerUpdate();
+        const refreshed = isKam
+          ? await CheckOfficialKamaronUpdate()
+          : await CheckOfficialServerUpdate();
         setOfficialUpdate(refreshed);
 
         if (!refreshed?.hasUpdate) {
@@ -392,22 +420,45 @@ export const App: React.FC = () => {
       return;
     }
 
-    if (activeCategory === 'recommended') {
-      // Auto-start Cam P2P tunnel if not already running
+    // 2. Kamaron: install on first click when no local profile exists yet
+    if (activeCategory === 'recommended' && selectedServer.isKamaron && !activeInstance) {
       try {
-        const cur = await GetTunnelStatus();
-        if (!cur.running) {
-          showToast('Đang tự động bật Cam Tunnel P2P kết nối máy chủ...');
-          const started = await StartTunnel();
-          setTunnelStatus(started);
-          showToast(`Cam Tunnel sẵn sàng (127.0.0.1:${started.localPort})`);
+        setIsSyncing(true);
+        showToast('Đang tải & cài Kamaron (434 MB) vào instances/kamaron...');
+        const inst = await EnsureOfficialKamaron();
+        await refreshData();
+        setActiveInstance(inst);
+        setDockActionType('play');
+        setDockData((prev) => ({ ...prev, btnText: 'CHƠI' }));
+        showToast(`Đã cài Kamaron. Bấm CHƠI lần nữa để vào game!`);
+      } catch (err: any) {
+        showToast(`Lỗi cài Kamaron: ${err}`);
+      } finally {
+        setIsSyncing(false);
+      }
+      return;
+    }
+
+    if (activeCategory === 'recommended') {
+      // Cam Tunnel only serves Chill Town on 25565; Kamaron connects directly.
+      if (!selectedServer.isKamaron) {
+        try {
+          const cur = await GetTunnelStatus();
+          if (!cur.running) {
+            showToast('Đang tự động bật Cam Tunnel P2P kết nối máy chủ...');
+            const started = await StartTunnel();
+            setTunnelStatus(started);
+            showToast(`Cam Tunnel sẵn sàng (127.0.0.1:${started.localPort})`);
+          }
+        } catch (tErr) {
+          console.warn('Auto start tunnel error:', tErr);
         }
-      } catch (tErr) {
-        console.warn('Auto start tunnel error:', tErr);
       }
 
       if (activeInstance) {
         await handleLaunchGame(activeInstance);
+      } else if (selectedServer.isKamaron) {
+        showToast('Vui lòng cài Kamaron trước khi chơi!');
       } else {
         const official = await EnsureOfficialChillTown();
         await refreshData();

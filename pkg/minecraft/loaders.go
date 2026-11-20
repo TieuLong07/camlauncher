@@ -152,35 +152,18 @@ func GetLoaderVersions(gameVersion, loader string) (*models.LoaderVersionResult,
 		}
 
 	case "neoforge":
-		url := fmt.Sprintf("https://bmclapi2.bangbang93.com/neoforge/list/%s", gameVersion)
-		req, _ := http.NewRequest("GET", url, nil)
-		req.Header.Set("User-Agent", "CamLauncher/0.1.0-alpha")
-
-		if resp, err := client.Do(req); err == nil && resp.StatusCode == http.StatusOK {
-			if body, err := io.ReadAll(resp.Body); err == nil {
-				var items []struct {
-					Version string `json:"version"`
-				}
-				if json.Unmarshal(body, &items) == nil {
-					seen := make(map[string]bool)
-					for i := len(items) - 1; i >= 0; i-- {
-						v := items[i].Version
-						if v != "" && !seen[v] {
-							seen[v] = true
-							res.Versions = append(res.Versions, v)
-						}
-						if len(res.Versions) >= 40 {
-							break
-						}
-					}
-				}
-			}
-			resp.Body.Close()
+		versions, err := neoVersions(gameVersion)
+		if err != nil {
+			return nil, fmt.Errorf("lỗi kết nối NeoForge: %w", err)
 		}
-
-		if len(res.Versions) > 0 {
-			res.Recommended = res.Versions[0]
+		if len(versions) > 40 {
+			versions = versions[:40]
 		}
+		res.Versions = versions
+		if len(versions) > 0 {
+			res.Recommended = versions[0]
+		}
+		return res, nil
 	}
 
 	return res, nil

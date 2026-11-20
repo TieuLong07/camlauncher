@@ -15,6 +15,8 @@ export interface RecommendedServerItem {
   tags: string[];
   serverAddress: string;
   region: string;
+  serverPort: number;
+  isKamaron?: boolean;
   features: {
     title: string;
     desc: string;
@@ -41,6 +43,7 @@ export const RECOMMENDED_SERVERS: RecommendedServerItem[] = [
       'Máy chủ sinh tồn ẩm thực kết hợp cơ giới hóa nông nghiệp cao cấp, nạp sẵn hơn 246 mods, hệ thống kinh tế SDM Shop và chuỗi nhiệm vụ chuyên sâu.',
     tags: ['246 mods nạp sẵn', 'SDM Shop Kinh Tế', 'P2P WireGuard', 'Đồ Họa Tối Ưu'],
     serverAddress: '127.0.0.1:25565',
+    serverPort: 25565,
     region: 'VN-HOME LAN / P2P',
     features: [
       {
@@ -62,6 +65,50 @@ export const RECOMMENDED_SERVERS: RecommendedServerItem[] = [
         title: 'Tự Động Cập Nhật',
         desc: 'Tự động kiểm tra file & mod mới',
         badge: 'SMART SYNC',
+      },
+    ],
+  },
+  {
+    id: 'kamaron',
+    serverId: 'kamaron',
+    title: 'Kamaron',
+    version: 'Forge 1.20.1 (v1.0.0)',
+    loader: 'forge',
+    iconKey: 'skull',
+    subtitle: 'Forge 1.20.1 • 87 mods • Sinytra Connector',
+    btnText: 'CÀI & CHƠI',
+    bannerUrl:
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1400&q=80',
+    pingMs: 18,
+    players: '0',
+    maxPlayers: '20',
+    description:
+      "Lẩu Cam — thế giới sinh tồn ẩm thực mở rộng với xe cộ Immersive Vehicles, NPC tùy biến, nông nghiệp Farmer's Delight và hệ thống kinh tế Lightman's Currency. Pack hybrid Forge + Fabric qua Sinytra Connector, chuyển từ hosting cũ về VPS nhà.",
+    tags: ['87 mods', 'Hybrid Forge+Fabric', 'Xe Cộ & NPC', 'Kinh Tế Lightman'],
+    serverAddress: '100.117.75.101:25567',
+    serverPort: 25567,
+    region: 'VN-HOME LAN / TAILSCALE',
+    isKamaron: true,
+    features: [
+      {
+        title: 'Cài 1 Chạm',
+        desc: 'Tự tải & cài vào instances/kamaron',
+        badge: 'TỰ ĐỘNG',
+      },
+      {
+        title: 'Hybrid Loader',
+        desc: 'Forge + Fabric qua Connector',
+        badge: 'LINH HOẠT',
+      },
+      {
+        title: 'Xe Cộ & NPC',
+        desc: 'Immersive Vehicles, CustomNPCs',
+        badge: 'ĐỘC ĐÁO',
+      },
+      {
+        title: 'World Cũ',
+        desc: 'Giữ nguyên 8.3GB từ hosting cũ',
+        badge: 'LIÊN TỤC',
       },
     ],
   },

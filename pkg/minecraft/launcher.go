@@ -121,7 +121,24 @@ func PrepareAndLaunch(opts LaunchOptions) (*exec.Cmd, error) {
 				versionDetail.Arguments = fabDetail.Arguments
 			}
 			versionDetail.Libraries = append(versionDetail.Libraries, fabDetail.Libraries...)
-		} else if strings.EqualFold(inst.Loader, "forge") || strings.EqualFold(inst.Loader, "neoforge") {
+		} else if strings.EqualFold(inst.Loader, "neoforge") {
+			loaderVer := inst.LoaderVersion
+			if loaderVer == "" {
+				versions, err := neoVersions(inst.GameVersion)
+				if err != nil || len(versions) == 0 {
+					return nil, fmt.Errorf("không tìm thấy NeoForge cho %s", inst.GameVersion)
+				}
+				loaderVer = versions[0]
+			}
+			neoDetail, err := neoProfile(sharedDir, loaderVer)
+			if err != nil {
+				return nil, fmt.Errorf("lỗi tải cấu hình NeoForge: %w", err)
+			}
+			versionDetail.MainClass = neoDetail.MainClass
+			versionDetail.Arguments = mergeVersionArguments(versionDetail.Arguments, neoDetail.Arguments)
+			versionDetail.Libraries = mergeLibraries(versionDetail.Libraries, neoDetail.Libraries)
+			inst.LoaderVersion = loaderVer
+		} else if strings.EqualFold(inst.Loader, "forge") {
 			// 1d. If Forge / NeoForge loader without local JSON profile
 			loaderVer := inst.LoaderVersion
 			if loaderVer == "" {
@@ -139,9 +156,9 @@ func PrepareAndLaunch(opts LaunchOptions) (*exec.Cmd, error) {
 					versionDetail.MainClass = forgeDetail.MainClass
 				}
 				if forgeDetail.Arguments != nil {
-					versionDetail.Arguments = forgeDetail.Arguments
+					versionDetail.Arguments = mergeVersionArguments(versionDetail.Arguments, forgeDetail.Arguments)
 				}
-				versionDetail.Libraries = append(versionDetail.Libraries, forgeDetail.Libraries...)
+				versionDetail.Libraries = mergeLibraries(versionDetail.Libraries, forgeDetail.Libraries)
 			}
 		}
 	} else {
@@ -226,7 +243,9 @@ func PrepareAndLaunch(opts LaunchOptions) (*exec.Cmd, error) {
 			targetPath := filepath.Join(librariesDir, filepath.FromSlash(art.Path))
 			classpathEntries = append(classpathEntries, targetPath)
 
-			if !verifyFileSHA1(targetPath, art.SHA1) {
+			// Forge profiles also declare locally generated artifacts with no URL.
+			// The Forge installer below creates them after ordinary downloads.
+			if art.URL != "" && !verifyFileSHA1(targetPath, art.SHA1) {
 				libTasks = append(libTasks, DownloadTask{
 					URL:  art.URL,
 					Path: targetPath,
@@ -358,9 +377,15 @@ func PrepareAndLaunch(opts LaunchOptions) (*exec.Cmd, error) {
 	isForge := strings.EqualFold(inst.Loader, "forge") ||
 		strings.Contains(strings.ToLower(versionDetail.MainClass), "bootstraplauncher") ||
 		strings.Contains(strings.ToLower(versionDetail.MainClass), "modlauncher")
-	if isForge {
+	if strings.EqualFold(inst.Loader, "neoforge") {
+		if err := ensureNeoInstalled(sharedDir, javaExe, inst.LoaderVersion); err != nil {
+			return nil, err
+		}
+	} else if isForge {
 		forgeVer := ExtractForgeVersion(inst, versionDetail)
-		_ = EnsureForgeClientInstalled(sharedDir, javaExe, inst.GameVersion, forgeVer, opts.ProgressFn)
+		if err := EnsureForgeClientInstalled(sharedDir, javaExe, inst.GameVersion, forgeVer, opts.ProgressFn); err != nil {
+			return nil, err
+		}
 	}
 
 	minRAM := inst.MinMemoryMB
@@ -524,12 +549,9 @@ func PrepareAndLaunch(opts LaunchOptions) (*exec.Cmd, error) {
 	}
 
 	// Step 8: Spawn Process
-	// On Windows, prefer javaw.exe if available so Windows does not allocate a console window
-	if runtime.GOOS == "windows" && strings.EqualFold(filepath.Base(javaExe), "java.exe") {
-		javawCandidate := filepath.Join(filepath.Dir(javaExe), "javaw.exe")
-		if _, err := os.Stat(javawCandidate); err == nil {
-			javaExe = javawCandidate
-		}
+	// java.exe with CREATE_NO_WINDOW preserves stderr for startup failures.
+	if runtime.GOOS == "windows" && strings.EqualFold(filepath.Base(javaExe), "javaw.exe") {
+		javaExe = filepath.Join(filepath.Dir(javaExe), "java.exe")
 	}
 
 	cmd := exec.Command(javaExe, cmdArgs...)
@@ -588,6 +610,44 @@ func streamLog(instanceID string, r io.Reader, defaultLevel string, logFn func(m
 	}
 }
 
+func mergeVersionArguments(base, loader *models.VersionArguments) *models.VersionArguments {
+	merged := &models.VersionArguments{}
+	if base != nil {
+		merged.Game = append(merged.Game, base.Game...)
+		merged.JVM = append(merged.JVM, base.JVM...)
+	}
+	if loader != nil {
+		merged.Game = append(merged.Game, loader.Game...)
+		merged.JVM = append(merged.JVM, loader.JVM...)
+	}
+	return merged
+}
+
+func mergeLibraries(base, loader []models.Library) []models.Library {
+	key := func(name string) string {
+		parts := strings.Split(name, ":")
+		if len(parts) < 3 {
+			return name
+		}
+		k := parts[0] + ":" + parts[1]
+		if len(parts) > 3 {
+			k += ":" + parts[3]
+		}
+		return k
+	}
+	replaced := make(map[string]bool)
+	for _, lib := range loader {
+		replaced[key(lib.Name)] = true
+	}
+	result := make([]models.Library, 0, len(base)+len(loader))
+	for _, lib := range base {
+		if !replaced[key(lib.Name)] {
+			result = append(result, lib)
+		}
+	}
+	return append(result, loader...)
+}
+
 func isLibraryAllowedOnOS(rules []models.Rule, currentOS string) bool {
 	if len(rules) == 0 {
 		return true
@@ -597,6 +657,9 @@ func isLibraryAllowedOnOS(rules []models.Rule, currentOS string) bool {
 		matchesOS := true
 		if rule.OS != nil && rule.OS["name"] != "" {
 			matchesOS = (rule.OS["name"] == currentOS)
+		}
+		if arch := rule.OS["arch"]; arch != "" {
+			matchesOS = matchesOS && ((arch == "x86" && runtime.GOARCH == "386") || (arch == "x64" && runtime.GOARCH == "amd64") || (arch == "arm64" && runtime.GOARCH == "arm64"))
 		}
 		if matchesOS {
 			allowed = (rule.Action == "allow")

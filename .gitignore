@@ -1,4 +1,10 @@
-build/
+/build/*
+!/build/windows/
+/build/windows/*
+!/build/windows/icon.ico
+!/build/windows/installer/
+/build/windows/installer/*
+!/build/windows/installer/project.nsi
 node_modules/
 frontend/node_modules/
 frontend/dist/

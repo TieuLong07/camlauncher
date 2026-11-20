@@ -83,9 +83,11 @@ func DownloadBatch(
 					continue
 				}
 
+				var lastReport time.Time
 				onChunk := func(n int64) {
 					curr := atomic.AddInt64(&downloadedBytes, n)
-					if progressFn != nil {
+					if progressFn != nil && time.Since(lastReport) >= 80*time.Millisecond {
+						lastReport = time.Now()
 						c := atomic.LoadInt64(&completed)
 						sendProgress(progressFn, instanceID, stage, filepath.Base(task.Path), c, total, curr, totalBytes, startTime)
 					}
@@ -191,7 +193,6 @@ func downloadSingleFileWithProgress(client *http.Client, task DownloadTask, onCh
 
 	buf := make([]byte, 64*1024)
 	var totalRead int64
-	var lastReport time.Time
 
 	for {
 		nr, rerr := resp.Body.Read(buf)
@@ -203,9 +204,8 @@ func downloadSingleFileWithProgress(client *http.Client, task DownloadTask, onCh
 				return totalRead, werr
 			}
 			totalRead += int64(nw)
-			if onChunk != nil && time.Since(lastReport) > 80*time.Millisecond {
+			if onChunk != nil {
 				onChunk(int64(nw))
-				lastReport = time.Now()
 			}
 		}
 		if rerr != nil {
@@ -218,7 +218,14 @@ func downloadSingleFileWithProgress(client *http.Client, task DownloadTask, onCh
 		}
 	}
 
-	_ = out.Close()
+	if err := out.Close(); err != nil {
+		_ = os.Remove(tmpFile)
+		return totalRead, err
+	}
+	if task.Size > 0 && totalRead != task.Size {
+		_ = os.Remove(tmpFile)
+		return totalRead, fmt.Errorf("kích thước tệp không khớp (nhận %d, kỳ vọng %d)", totalRead, task.Size)
+	}
 
 	// Check SHA1 if expected
 	if task.SHA1 != "" {
@@ -229,7 +236,10 @@ func downloadSingleFileWithProgress(client *http.Client, task DownloadTask, onCh
 		}
 	}
 
-	_ = os.Rename(tmpFile, task.Path)
+	if err := os.Rename(tmpFile, task.Path); err != nil {
+		_ = os.Remove(tmpFile)
+		return totalRead, err
+	}
 	return totalRead, nil
 }
 

@@ -14,18 +14,14 @@
   --color-app-accent-muted: rgba(52, 211, 153, 0.15);
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  user-select: none;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  button:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 body {
-  background-color: #0a0d14;
+  background-color: #131110;
   color: #f1f5f9;
   overflow: hidden;
   height: 100vh;
@@ -64,16 +60,12 @@ body {
 
 /* Glassmorphism panels */
 .glass-panel {
-  background: rgba(15, 20, 30, 0.82);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: #211d1a;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-card {
-  background: rgba(18, 24, 38, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: #24201d;
   border: 1px solid rgba(255, 255, 255, 0.07);
 }
 

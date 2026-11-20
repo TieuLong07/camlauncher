@@ -22,6 +22,8 @@ export function CheckLauncherUpdate():Promise<models.LauncherUpdateInfo>;
 
 export function CheckOfficialKamaronUpdate():Promise<models.UpdateCheckResult>;
 
+export function CheckOfficialModpack(arg1:string):Promise<models.UpdateCheckResult>;
+
 export function CheckOfficialServerUpdate():Promise<models.UpdateCheckResult>;
 
 export function CheckServerUpdate(arg1:string):Promise<models.UpdateCheckResult>;
@@ -72,6 +74,8 @@ export function InstallJavaRuntime(arg1:number):Promise<string>;
 
 export function InstallModToInstance(arg1:string,arg2:string):Promise<string>;
 
+export function InstallPackToInstance(arg1:string,arg2:string,arg3:string):Promise<string>;
+
 export function IsGameRunning():Promise<boolean>;
 
 export function KillGame():Promise<void>;
@@ -111,6 +115,8 @@ export function SyncCommunityServer(arg1:string):Promise<void>;
 export function SyncOfficialChillTown():Promise<models.Instance>;
 
 export function SyncOfficialKamaron():Promise<models.Instance>;
+
+export function SyncOfficialModpack(arg1:string):Promise<models.Instance>;
 
 export function ToggleInstanceFile(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<void>;
 

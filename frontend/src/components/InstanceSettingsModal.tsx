@@ -1,3 +1,4 @@
+import { Dialog } from './Dialog';
 import React, { useState, useEffect } from 'react';
 import {
   X,
@@ -242,14 +243,14 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
   const enabledCount = fileItems.filter((f) => f.enabled).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 select-none">
+    <Dialog titleId="instance-settings-title" busy={savingGeneral} onClose={onClose}>
       <div
         className="glass-panel modal-enter w-full flex flex-col rounded-3xl border border-white/15 shadow-2xl relative overflow-hidden"
         style={{
-          maxWidth: '920px',
+          width: 'min(920px, 90vw)',
           height: '660px',
           maxHeight: '92vh',
-          backgroundColor: 'rgba(12, 16, 26, 0.96)',
+          backgroundColor: 'var(--cam-panel)',
         }}
       >
         {/* Header */}
@@ -258,14 +259,14 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
           style={{ padding: '16px 24px' }}
         >
           <div className="flex items-center" style={{ gap: '14px' }}>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
               <Sliders className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center" style={{ gap: '8px' }}>
-                <h2 className="text-lg font-black text-white tracking-tight">{instance.name}</h2>
+                <h2 id="instance-settings-title" className="text-lg font-black text-white tracking-tight">{instance.name}</h2>
                 <span
-                  className="status-pill rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 font-mono"
+                  className="status-pill rounded-md bg-orange-500/15 text-orange-300 border border-orange-500/25 font-mono"
                   style={{ height: '22px', padding: '0 8px', fontSize: '10.5px' }}
                 >
                   MC {instance.gameVersion} • {instance.loader?.toUpperCase() || 'VANILLA'}
@@ -276,12 +277,12 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={handleOpenRootFolder}
-                  className="group flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-emerald-500/15 border border-white/10 hover:border-emerald-500/30 text-slate-400 hover:text-emerald-300 transition-all cursor-pointer text-left max-w-lg"
+                  className="group flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-orange-500/15 border border-white/10 hover:border-orange-500/30 text-slate-400 hover:text-orange-300 transition-all cursor-pointer text-left max-w-lg"
                   title="Bấm để mở thư mục Instance này trong Windows File Explorer"
                 >
-                  <FolderOpen className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-400 shrink-0 transition-colors" />
+                  <FolderOpen className="w-3.5 h-3.5 text-slate-400 group-hover:text-orange-400 shrink-0 transition-colors" />
                   <span className="text-[11px] font-mono truncate max-w-sm">{instance.path}</span>
-                  <span className="text-[10px] font-sans font-semibold text-emerald-400/90 group-hover:text-emerald-300 shrink-0 ml-1">
+                  <span className="text-[10px] font-sans font-semibold text-orange-400/90 group-hover:text-orange-300 shrink-0 ml-1">
                     • Mở thư mục
                   </span>
                 </button>
@@ -291,6 +292,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
 
           <button
             onClick={onClose}
+              aria-label="Đóng hộp thoại"
             className="w-8 h-8 rounded-xl hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -316,22 +318,22 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`status-pill cursor-pointer font-bold text-xs transition-all relative ${
-                    isActive ? 'text-emerald-300' : 'text-slate-400 hover:text-slate-200'
+                    isActive ? 'text-orange-300' : 'text-slate-400 hover:text-slate-200'
                   }`}
                   style={{ height: '46px', padding: '0 16px', gap: '8px' }}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-orange-400' : 'text-slate-400'}`} />
                   <span>{tab.label}</span>
                   {tab.id !== 'general' && activeTab === tab.id && (
                     <span
-                      className="status-pill rounded-full bg-emerald-500/20 text-emerald-300 font-mono"
+                      className="status-pill rounded-full bg-orange-500/20 text-orange-300 font-mono"
                       style={{ height: '18px', padding: '0 6px', fontSize: '10px' }}
                     >
                       {fileItems.length}
                     </span>
                   )}
                   {isActive && (
-                    <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full" />
+                    <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-orange-400 to-amber-400 rounded-full" />
                   )}
                 </button>
               );
@@ -349,11 +351,11 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                     : 'shaderpacks'
                 )
               }
-              className="status-pill text-xs font-semibold text-slate-300 hover:text-emerald-300 hover:bg-white/[0.06] rounded-xl transition-all border border-white/10"
+              className="status-pill text-xs font-semibold text-slate-300 hover:text-orange-300 hover:bg-white/[0.06] rounded-xl transition-all border border-white/10"
               style={{ height: '32px', padding: '0 12px', gap: '6px' }}
               title="Mở thư mục trong Windows File Explorer"
             >
-              <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
+              <FolderOpen className="w-3.5 h-3.5 text-orange-400" />
               <span>Mở Thư Mục</span>
             </button>
           )}
@@ -373,7 +375,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white font-semibold text-sm focus:outline-none focus:border-emerald-500/50"
+                  className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white font-semibold text-sm focus:outline-none focus:border-orange-500/50"
                 />
                 <span className="text-[11px] text-slate-400">
                   Thư mục instance trên ổ đĩa sẽ tự động cập nhật và đồng bộ theo tên này.
@@ -387,7 +389,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center" style={{ gap: '8px' }}>
-                    <Zap className="w-4 h-4 text-emerald-400" />
+                    <Zap className="w-4 h-4 text-orange-400" />
                     <span className="text-sm font-bold text-white uppercase tracking-wider">
                       Bộ Nhớ RAM Cấp Phát
                     </span>
@@ -396,7 +398,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                     <span className="text-xs font-mono text-slate-400">
                       Tổng RAM máy: <strong className="text-slate-200">{totalSystemRamGb} GB</strong>
                     </span>
-                    <span className="text-xs px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
+                    <span className="text-xs px-2.5 py-0.5 rounded-md bg-orange-500/20 text-orange-300 font-mono font-bold border border-orange-500/30">
                       {Math.round(allocatedRam / 1024)} GB ({allocatedRam} MB)
                     </span>
                   </div>
@@ -411,7 +413,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                     step={512}
                     value={allocatedRam}
                     onChange={(e) => setAllocatedRam(Number(e.target.value))}
-                    className="w-full accent-emerald-400 cursor-pointer h-2 bg-black/50 rounded-lg"
+                    className="w-full accent-orange-400 cursor-pointer h-2 bg-black/50 rounded-lg"
                   />
                   <div className="flex justify-between text-[11px] font-mono text-slate-500">
                     <span>1 GB (Tối thiểu)</span>
@@ -438,7 +440,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                         onClick={() => setAllocatedRam(preset.value)}
                         className={`status-pill rounded-lg text-xs transition-all cursor-pointer font-semibold ${
                           isSelected
-                            ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 shadow-sm shadow-emerald-500/10'
+                            ? 'bg-orange-500/25 text-orange-300 border border-orange-500/50 shadow-sm shadow-emerald-500/10'
                             : 'bg-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.08] border border-white/5'
                         }`}
                         style={{ height: '30px', padding: '0 12px' }}
@@ -488,7 +490,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                     <span>{showAdvanced ? 'Thu gọn' : 'Mở rộng'}</span>
                     <ChevronDown
                       className={`w-4 h-4 transition-transform duration-200 ${
-                        showAdvanced ? 'rotate-180 text-emerald-400' : ''
+                        showAdvanced ? 'rotate-180 text-orange-400' : ''
                       }`}
                     />
                   </div>
@@ -503,7 +505,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                     <div className="flex flex-col" style={{ gap: '8px' }}>
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center" style={{ gap: '6px' }}>
-                          <Cpu className="w-4 h-4 text-emerald-400" />
+                          <Cpu className="w-4 h-4 text-orange-400" />
                           <span>Đường Dẫn Java (Java Runtime)</span>
                         </label>
                         {javaPath && (
@@ -536,7 +538,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                               setJavaPath(e.target.value);
                             }
                           }}
-                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-emerald-500/50 cursor-pointer"
+                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-orange-500/50 cursor-pointer"
                         >
                           <option value="" className="bg-slate-900 text-slate-200">
                             [Mặc định] Tự động (Đi kèm Launcher / Tự tải - Khuyên dùng)
@@ -554,11 +556,11 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                         <button
                           type="button"
                           onClick={handleBrowseJava}
-                          className="status-pill rounded-xl bg-white/[0.06] hover:bg-emerald-500/20 text-slate-200 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-xs font-semibold shrink-0 cursor-pointer transition-all"
+                          className="status-pill rounded-xl bg-white/[0.06] hover:bg-orange-500/20 text-slate-200 hover:text-orange-300 border border-white/10 hover:border-orange-500/30 text-xs font-semibold shrink-0 cursor-pointer transition-all"
                           style={{ height: '38px', padding: '0 14px', gap: '6px' }}
                           title="Mở hộp thoại Windows để tìm file javaw.exe"
                         >
-                          <FolderOpen className="w-4 h-4 text-emerald-400" />
+                          <FolderOpen className="w-4 h-4 text-orange-400" />
                           <span>Duyệt...</span>
                         </button>
                       </div>
@@ -571,7 +573,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                             value={javaPath}
                             onChange={(e) => setJavaPath(e.target.value)}
                             placeholder="C:\Program Files\Java\jdk-21\bin\javaw.exe"
-                            className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/10 text-emerald-300 font-mono text-xs focus:outline-none focus:border-emerald-500/50"
+                            className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/10 text-orange-300 font-mono text-xs focus:outline-none focus:border-orange-500/50"
                           />
                         </div>
                       )}
@@ -591,7 +593,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                           <button
                             type="button"
                             onClick={applyAikarFlags}
-                            className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer underline"
+                            className="text-xs text-orange-400 hover:text-orange-300 font-semibold cursor-pointer underline"
                           >
                             Áp dụng Aikar Flags (Tối ưu FPS)
                           </button>
@@ -614,7 +616,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                         value={jvmArgs}
                         onChange={(e) => setJvmArgs(e.target.value)}
                         placeholder="Ví dụ: -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200..."
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-emerald-500/50 resize-none leading-relaxed"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-orange-500/50 resize-none leading-relaxed"
                       />
                       <span className="text-[11px] text-slate-500">
                         Chỉ thêm tham số phụ (không cần -Xmx và -Xms vì đã được cài đặt tự động qua thanh trượt RAM ở trên).
@@ -659,7 +661,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={`Tìm kiếm ${activeTab === 'mods' ? 'mod' : activeTab === 'resourcepacks' ? 'resource pack' : 'shader'}...`}
-                    className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-black/40 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500/50 font-medium"
+                    className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-black/40 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-orange-500/50 font-medium"
                   />
                 </div>
 
@@ -672,7 +674,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                         onClick={() => setFilterStatus(st)}
                         className={`status-pill rounded-lg font-semibold transition cursor-pointer ${
                           filterStatus === st
-                            ? 'bg-emerald-500/20 text-emerald-300 font-bold'
+                            ? 'bg-orange-500/20 text-orange-300 font-bold'
                             : 'text-slate-400 hover:text-white'
                         }`}
                         style={{ height: '28px', padding: '0 10px', fontSize: '11px' }}
@@ -691,7 +693,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
                     className="w-8 h-8 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition cursor-pointer"
                     title="Làm mới danh sách"
                   >
-                    <RotateCw className={`w-3.5 h-3.5 ${loadingFiles ? 'animate-spin text-emerald-400' : ''}`} />
+                    <RotateCw className={`w-3.5 h-3.5 ${loadingFiles ? 'animate-spin text-orange-400' : ''}`} />
                   </button>
                 </div>
               </div>
@@ -699,7 +701,7 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
               {/* Files List Table */}
               {loadingFiles ? (
                 <div className="py-24 flex flex-col items-center justify-center" style={{ gap: '12px' }}>
-                  <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
                   <p className="text-xs text-slate-400">Đang quét thư mục {activeTab}...</p>
                 </div>
               ) : filteredFiles.length === 0 ? (
@@ -798,6 +800,6 @@ export const InstanceSettingsModal: React.FC<InstanceSettingsModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 };

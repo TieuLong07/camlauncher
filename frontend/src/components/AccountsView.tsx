@@ -1,3 +1,4 @@
+import { Dialog } from './Dialog';
 import React, { useState } from 'react';
 import {
   Users,
@@ -152,7 +153,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
             Quản Lý Tài Khoản
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Chuyển đổi 1-click giữa tài khoản Offline (chơi miễn phí) và tài khoản Microsoft bản quyền.
+            Chọn tài khoản dùng để mở Minecraft.
           </p>
         </div>
 
@@ -169,7 +170,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
               <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
               <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
             </svg>
-            <span>Đăng Nhập Microsoft Auth</span>
+            <span>Đăng nhập Microsoft</span>
           </button>
 
           {/* Add Offline Button */}
@@ -179,7 +180,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
             style={{ height: '40px', padding: '0 18px', gap: '8px', fontSize: '13px' }}
           >
             <UserPlus className="w-4 h-4" />
-            <span>Thêm Nick Offline (Crack)</span>
+            <span>Thêm tài khoản offline</span>
           </button>
         </div>
       </div>
@@ -297,9 +298,9 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
 
       {/* Microsoft Device Code Flow Modal */}
       {showMsModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <Dialog titleId="microsoft-dialog-title" onClose={handleCancelMicrosoft}>
           <div
-            className="glass-panel modal-enter w-full max-w-lg border border-blue-500/30 shadow-2xl relative bg-slate-950/90"
+            className="glass-panel modal-enter w-[min(512px,88vw)] border border-blue-500/30 shadow-2xl relative bg-slate-950/90"
             style={{ padding: '30px', borderRadius: '24px', gap: '22px', display: 'flex', flexDirection: 'column' }}
           >
             {/* Modal Header */}
@@ -311,10 +312,11 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
                   <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
                   <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
                 </svg>
-                <h2 className="text-lg font-bold text-white tracking-tight">Đăng Nhập Microsoft Auth</h2>
+                <h2 id="microsoft-dialog-title" className="text-lg font-bold text-white tracking-tight">Đăng nhập Microsoft</h2>
               </div>
               <button
                 onClick={handleCancelMicrosoft}
+                aria-label="Đóng hộp thoại"
                 className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -448,23 +450,25 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
               )}
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
 
       {/* Add Offline Modal */}
       {showAddOffline && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <Dialog titleId="offline-dialog-title" busy={loading} onClose={() => setShowAddOffline(false)}>
           <div
-            className="glass-panel modal-enter w-full max-w-md border border-white/15 shadow-2xl relative"
+            className="glass-panel modal-enter w-[min(448px,88vw)] border border-white/15 shadow-2xl relative"
             style={{ padding: '28px', borderRadius: '24px', gap: '20px', display: 'flex', flexDirection: 'column' }}
           >
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h2 className="text-lg font-bold text-white flex items-center" style={{ gap: '8px' }}>
+              <h2 id="offline-dialog-title" className="text-lg font-bold text-white flex items-center" style={{ gap: '8px' }}>
                 <UserPlus className="w-5 h-5 text-emerald-400" />
-                Thêm Nick Offline (Crack)
+                Thêm tài khoản offline
               </h2>
               <button
                 onClick={() => setShowAddOffline(false)}
+                disabled={loading}
+                aria-label="Đóng hộp thoại"
                 className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -473,10 +477,11 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
 
             <form onSubmit={handleAddOffline} className="flex flex-col" style={{ gap: '16px' }}>
               <div className="flex flex-col" style={{ gap: '6px' }}>
-                <label className="text-slate-300 text-xs font-semibold">Tên nhân vật (Nickname):</label>
+                <label htmlFor="offline-account-name" className="text-slate-300 text-xs font-semibold">Tên nhân vật</label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: Steve, Alex, TiCaGamer..."
+                  id="offline-account-name"
+                  placeholder="Ví dụ: Steve, Alex..."
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   maxLength={16}
@@ -484,7 +489,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 text-sm font-semibold"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Từ 3 đến 16 ký tự. Tự động sinh UUID chuẩn Mojang tương thích 100% với các máy chủ Offline / Crack.
+                  Từ 3 đến 16 ký tự, gồm chữ, số và dấu gạch dưới.
                 </p>
               </div>
 
@@ -506,7 +511,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="status-pill px-5 py-2 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                  className="status-pill px-5 py-2 text-xs font-bold bg-orange-400 hover:bg-orange-300 text-slate-950 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                   style={{ height: '36px', padding: '0 20px' }}
                 >
                   {loading ? 'Đang Tạo...' : 'Xác Nhận'}
@@ -514,7 +519,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
               </div>
             </form>
           </div>
-        </div>
+        </Dialog>
       )}
     </main>
   );

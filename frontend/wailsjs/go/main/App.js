@@ -38,6 +38,10 @@ export function CheckOfficialKamaronUpdate() {
   return window['go']['main']['App']['CheckOfficialKamaronUpdate']();
 }
 
+export function CheckOfficialModpack(arg1) {
+  return window['go']['main']['App']['CheckOfficialModpack'](arg1);
+}
+
 export function CheckOfficialServerUpdate() {
   return window['go']['main']['App']['CheckOfficialServerUpdate']();
 }
@@ -138,6 +142,10 @@ export function InstallModToInstance(arg1, arg2) {
   return window['go']['main']['App']['InstallModToInstance'](arg1, arg2);
 }
 
+export function InstallPackToInstance(arg1, arg2, arg3) {
+  return window['go']['main']['App']['InstallPackToInstance'](arg1, arg2, arg3);
+}
+
 export function IsGameRunning() {
   return window['go']['main']['App']['IsGameRunning']();
 }
@@ -216,6 +224,10 @@ export function SyncOfficialChillTown() {
 
 export function SyncOfficialKamaron() {
   return window['go']['main']['App']['SyncOfficialKamaron']();
+}
+
+export function SyncOfficialModpack(arg1) {
+  return window['go']['main']['App']['SyncOfficialModpack'](arg1);
 }
 
 export function ToggleInstanceFile(arg1, arg2, arg3, arg4) {

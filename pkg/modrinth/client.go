@@ -2,6 +2,8 @@ package modrinth
 
 import (
 	"Aether/pkg/models"
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -197,6 +199,141 @@ func InstallMod(slugOrID, gameVersion, loader, instanceModsDir string) (string, 
 	}
 
 	return targetFile.Filename, nil
+}
+
+// InstallPack downloads a version compatible with the selected Minecraft version.
+// Shader loaders differ from mod loaders, so pack versions are filtered by game version.
+func InstallPack(slug, gameVersion, projectType, instanceDir string) (string, error) {
+	return installPack(&http.Client{Timeout: 5 * time.Minute}, ModrinthAPIBase, slug, gameVersion, projectType, instanceDir)
+}
+
+func installPack(client *http.Client, baseURL, slug, gameVersion, projectType, instanceDir string) (string, error) {
+	var directory string
+	switch projectType {
+	case "shader":
+		directory = "shaderpacks"
+	case "resourcepack":
+		directory = "resourcepacks"
+	default:
+		return "", fmt.Errorf("loại gói không được hỗ trợ: %s", projectType)
+	}
+	if slug == "" || strings.ContainsAny(slug, "/\\") || slug == "." || slug == ".." {
+		return "", fmt.Errorf("mã dự án không hợp lệ")
+	}
+	projectURL := baseURL + "/project/" + url.PathEscape(slug)
+	request, err := http.NewRequest("GET", projectURL, nil)
+	if err != nil {
+		return "", err
+	}
+	request.Header.Set("User-Agent", "CamLauncher/0.5.0")
+	response, err := client.Do(request)
+	if err != nil {
+		return "", err
+	}
+	var project struct {
+		ProjectType string `json:"project_type"`
+	}
+	if response.StatusCode != http.StatusOK {
+		response.Body.Close()
+		return "", fmt.Errorf("không thể đọc dự án Modrinth: HTTP %d", response.StatusCode)
+	}
+	err = json.NewDecoder(response.Body).Decode(&project)
+	response.Body.Close()
+	if err != nil {
+		return "", err
+	}
+	if project.ProjectType != projectType {
+		return "", fmt.Errorf("loại dự án không khớp với danh mục đã chọn")
+	}
+
+	versions, err := json.Marshal([]string{gameVersion})
+	if err != nil {
+		return "", err
+	}
+	params := url.Values{}
+	params.Set("game_versions", string(versions))
+	request, err = http.NewRequest("GET", projectURL+"/version?"+params.Encode(), nil)
+	if err != nil {
+		return "", err
+	}
+	request.Header.Set("User-Agent", "CamLauncher/0.5.0")
+	response, err = client.Do(request)
+	if err != nil {
+		return "", err
+	}
+	if response.StatusCode != http.StatusOK {
+		response.Body.Close()
+		return "", fmt.Errorf("không thể đọc phiên bản: HTTP %d", response.StatusCode)
+	}
+	var results []ProjectVersion
+	err = json.NewDecoder(response.Body).Decode(&results)
+	response.Body.Close()
+	if err != nil {
+		return "", err
+	}
+	if len(results) == 0 {
+		return "", fmt.Errorf("không có phiên bản tương thích với Minecraft %s", gameVersion)
+	}
+
+	var selected *VersionFile
+	for i := range results[0].Files {
+		file := &results[0].Files[i]
+		if strings.EqualFold(filepath.Ext(file.Filename), ".zip") && (selected == nil || file.Primary) {
+			selected = file
+			if file.Primary {
+				break
+			}
+		}
+	}
+	if selected == nil {
+		return "", fmt.Errorf("phiên bản không có tệp ZIP để cài")
+	}
+	if filepath.Base(selected.Filename) != selected.Filename || strings.ContainsAny(selected.Filename, "/\\:") {
+		return "", fmt.Errorf("tên tệp không hợp lệ")
+	}
+	folder := filepath.Join(instanceDir, directory)
+	if err := os.MkdirAll(folder, 0755); err != nil {
+		return "", err
+	}
+	request, err = http.NewRequest("GET", selected.URL, nil)
+	if err != nil {
+		return "", err
+	}
+	request.Header.Set("User-Agent", "CamLauncher/0.5.0")
+	response, err = client.Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("tải tệp thất bại: HTTP %d", response.StatusCode)
+	}
+	temp, err := os.CreateTemp(folder, ".cam-download-*")
+	if err != nil {
+		return "", err
+	}
+	tempPath := temp.Name()
+	defer os.Remove(tempPath)
+	hash := sha512.New()
+	written, copyErr := io.Copy(io.MultiWriter(temp, hash), response.Body)
+	closeErr := temp.Close()
+	if copyErr != nil {
+		return "", copyErr
+	}
+	if closeErr != nil {
+		return "", closeErr
+	}
+	if selected.Size > 0 && written != selected.Size {
+		return "", fmt.Errorf("tệp tải về không đủ dữ liệu")
+	}
+	if expected := selected.Hashes["sha512"]; expected != "" && !strings.EqualFold(hex.EncodeToString(hash.Sum(nil)), expected) {
+		return "", fmt.Errorf("tệp tải về không khớp mã kiểm tra")
+	}
+	dest := filepath.Join(folder, selected.Filename)
+	if err := os.Rename(tempPath, dest); err != nil {
+		return "", err
+	}
+	return selected.Filename, nil
 }
 
 // TiCaFPSBoostMods defines the elite performance optimization bundle

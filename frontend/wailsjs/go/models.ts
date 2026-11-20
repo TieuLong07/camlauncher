@@ -585,6 +585,7 @@ export namespace models {
 	    hasUpdate: boolean;
 	    isDrifted: boolean;
 	    missingMods?: string[];
+	    modifiedMods?: string[];
 	    extraMods?: string[];
 	    changelog: string;
 	    filesToDownload: ModpackFile[];
@@ -605,6 +606,7 @@ export namespace models {
 	        this.hasUpdate = source["hasUpdate"];
 	        this.isDrifted = source["isDrifted"];
 	        this.missingMods = source["missingMods"];
+	        this.modifiedMods = source["modifiedMods"];
 	        this.extraMods = source["extraMods"];
 	        this.changelog = source["changelog"];
 	        this.filesToDownload = this.convertValues(source["filesToDownload"], ModpackFile);

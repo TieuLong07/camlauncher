@@ -32,7 +32,10 @@ func NewStore() *Store {
 		appData = "."
 	}
 	launcherDir := filepath.Join(appData, "CamLauncher")
-	_ = os.MkdirAll(launcherDir, 0755)
+	_, instancesErr := os.Stat(filepath.Join(launcherDir, "instances"))
+	for _, dir := range []string{"", "instances", "libraries", "assets", "versions", "runtimes"} {
+		_ = os.MkdirAll(filepath.Join(launcherDir, dir), 0755)
+	}
 
 	store := &Store{
 		LauncherDir:      launcherDir,
@@ -52,6 +55,16 @@ func NewStore() *Store {
 
 	store.Load()
 	store.ensureDefaults()
+	if os.IsNotExist(instancesErr) {
+		for _, inst := range store.Instances {
+			if (inst.Name == "TiCa Boosted 1.21.1" || inst.Name == "Vanilla 1.21.1") &&
+				filepath.Clean(inst.Path) == filepath.Join(launcherDir, "instances", inst.Name) {
+				for _, dir := range []string{"", "mods", "resourcepacks", "shaderpacks", "saves", "config"} {
+					_ = os.MkdirAll(filepath.Join(inst.Path, dir), 0755)
+				}
+			}
+		}
+	}
 	store.MigrateInstanceFolderNames()
 	store.ScanUnregisteredInstances()
 
@@ -160,6 +173,11 @@ func (s *Store) ensureDefaults() {
 				PlayTimeMinutes: 0,
 			},
 		)
+		for _, inst := range s.Instances {
+			for _, dir := range []string{"", "mods", "resourcepacks", "shaderpacks", "saves", "config"} {
+				_ = os.MkdirAll(filepath.Join(inst.Path, dir), 0755)
+			}
+		}
 	}
 
 	// If no community servers configured, create the default Battle Royale server
@@ -1025,6 +1043,9 @@ func FindOfficialChillTown(instances []models.Instance) *models.Instance {
 		}
 	}
 	for i := range instances {
+		if instances[i].ServerID != "" && !strings.EqualFold(instances[i].ServerID, "chilltown") {
+			continue
+		}
 		name := strings.ToLower(instances[i].Name)
 		if strings.Contains(name, "chill town") || strings.Contains(name, "cooking tq") {
 			inst := instances[i]

@@ -313,11 +313,11 @@ const KamaronInstanceFolder = "kamaron"
 // EnsureOfficialChillTown creates or migrates the official Cooking TQ profile,
 // then applies the latest Chill Town modpack before it can launch.
 func (a *App) EnsureOfficialChillTown() (*models.Instance, error) {
-	manifest, err := modsync.FetchServerManifest(OfficialChillTownManifestURL)
+	manifest, err := modsync.FetchServerManifest(officialModpacks["chilltown"])
 	if err != nil {
 		return nil, fmt.Errorf("không thể tải thông tin Chill Town: %w", err)
 	}
-	if manifest.ID != "chilltown" || manifest.GameVersion != "1.20.1" || !strings.EqualFold(manifest.Loader, "forge") {
+	if err := validateOfficialManifest(manifest, "chilltown"); err != nil {
 		return nil, fmt.Errorf("manifest Chill Town không hợp lệ")
 	}
 
@@ -336,7 +336,7 @@ func (a *App) EnsureOfficialChillTown() (*models.Instance, error) {
 			MinMemoryMB:   manifest.MinMemoryMB,
 			MaxMemoryMB:   manifest.MaxMemoryMB,
 			Path:          a.store.GetUniqueInstancePath("Chill Town", id),
-			ServerSyncURL: OfficialChillTownManifestURL,
+			ServerSyncURL: officialModpacks["chilltown"],
 			ServerID:      "chilltown",
 			CreatedAt:     time.Now(),
 			LastPlayed:    time.Now(),
@@ -381,17 +381,6 @@ func (a *App) EnsureOfficialChillTown() (*models.Instance, error) {
 				}
 			}
 		}
-		target.Name = "Chill Town"
-		target.GameVersion = manifest.GameVersion
-		target.Loader = manifest.Loader
-		target.LoaderVersion = manifest.LoaderVersion
-		target.ServerID = "chilltown"
-		target.ServerSyncURL = OfficialChillTownManifestURL
-		if updated, updateErr := a.store.UpdateInstance(*target); updateErr != nil {
-			return nil, updateErr
-		} else {
-			target = updated
-		}
 	}
 
 	progressCallback := func(evt models.ProgressEvent) {
@@ -402,24 +391,27 @@ func (a *App) EnsureOfficialChillTown() (*models.Instance, error) {
 	if err := modsync.SyncServerModpack(target.Path, manifest, progressCallback); err != nil {
 		return nil, err
 	}
+	target.Name = "Chill Town"
+	target.GameVersion = manifest.GameVersion
+	target.Loader = manifest.Loader
+	target.LoaderVersion = manifest.LoaderVersion
+	target.ServerID = "chilltown"
+	target.ServerSyncURL = officialModpacks["chilltown"]
 	target.ServerVersion = manifest.Version
-	if updated, err := a.store.UpdateInstance(*target); err == nil {
-		target = updated
-	}
-	return target, nil
+	return a.store.UpdateInstance(*target)
 }
 
 // CheckOfficialServerUpdate checks the live GitHub manifest against the official profile.
 func (a *App) CheckOfficialServerUpdate() (*models.UpdateCheckResult, error) {
 	target := storage.FindOfficialChillTown(a.store.GetInstances())
 	if target == nil {
-		manifest, err := modsync.FetchServerManifest(OfficialChillTownManifestURL)
+		manifest, err := modsync.FetchServerManifest(officialModpacks["chilltown"])
 		if err != nil {
 			return nil, err
 		}
 		return &models.UpdateCheckResult{ServerID: manifest.ID, ServerName: manifest.Name, LatestVersion: manifest.Version, HasUpdate: true, Changelog: manifest.Changelog, Manifest: manifest}, nil
 	}
-	return modsync.CheckServerUpdate(target.Path, OfficialChillTownManifestURL)
+	return modsync.CheckServerUpdate(target.Path, officialModpacks["chilltown"])
 }
 
 // SyncOfficialChillTown downloads and applies the current official modpack.
@@ -429,11 +421,11 @@ func (a *App) SyncOfficialChillTown() (*models.Instance, error) { return a.Ensur
 // installs the Kamaron modpack. The profile always lands in
 // %APPDATA%\CamLauncher\instances\kamaron so repeat installs reuse one folder.
 func (a *App) EnsureOfficialKamaron() (*models.Instance, error) {
-	manifest, err := modsync.FetchServerManifest(OfficialKamaronManifestURL)
+	manifest, err := modsync.FetchServerManifest(officialModpacks["kamaron"])
 	if err != nil {
 		return nil, fmt.Errorf("không thể tải thông tin Kamaron: %w", err)
 	}
-	if manifest.ID != "kamaron" || manifest.GameVersion != "1.20.1" || !strings.EqualFold(manifest.Loader, "forge") {
+	if err := validateOfficialManifest(manifest, "kamaron"); err != nil {
 		return nil, fmt.Errorf("manifest Kamaron không hợp lệ")
 	}
 
@@ -443,15 +435,12 @@ func (a *App) EnsureOfficialKamaron() (*models.Instance, error) {
 		// common) instead of creating a duplicate profile on the same path.
 		adopted := a.findInstanceAtPath(filepath.Join(a.store.LauncherDir, "instances", KamaronInstanceFolder))
 		if adopted != nil {
+			if adopted.ServerID != "" && !strings.EqualFold(adopted.ServerID, "kamaron") {
+				return nil, fmt.Errorf("thư mục Kamaron đang thuộc máy chủ %s", adopted.ServerID)
+			}
 			adopted.Name = manifest.Name
 			adopted.ServerID = "kamaron"
-			adopted.ServerSyncURL = OfficialKamaronManifestURL
-			adopted.ServerVersion = manifest.Version
-			adopted.GameVersion = manifest.GameVersion
-			adopted.Loader = manifest.Loader
-			if manifest.LoaderVersion != "" {
-				adopted.LoaderVersion = manifest.LoaderVersion
-			}
+			adopted.ServerSyncURL = officialModpacks["kamaron"]
 			if updated, updateErr := a.store.UpdateInstance(*adopted); updateErr == nil {
 				existing = updated
 			} else {
@@ -472,7 +461,7 @@ func (a *App) EnsureOfficialKamaron() (*models.Instance, error) {
 			MinMemoryMB:   manifest.MinMemoryMB,
 			MaxMemoryMB:   manifest.MaxMemoryMB,
 			Path:          filepath.Join(a.store.LauncherDir, "instances", KamaronInstanceFolder),
-			ServerSyncURL: OfficialKamaronManifestURL,
+			ServerSyncURL: officialModpacks["kamaron"],
 			ServerID:      "kamaron",
 			ServerVersion: manifest.Version,
 			CreatedAt:     time.Now(),
@@ -488,8 +477,7 @@ func (a *App) EnsureOfficialKamaron() (*models.Instance, error) {
 		a.store.AddInstance(inst)
 		existing = &inst
 	} else {
-		existing.ServerSyncURL = OfficialKamaronManifestURL
-		existing.LoaderVersion = manifest.LoaderVersion
+		existing.ServerSyncURL = officialModpacks["kamaron"]
 		if updated, updateErr := a.store.UpdateInstance(*existing); updateErr == nil {
 			existing = updated
 		}
@@ -503,11 +491,11 @@ func (a *App) EnsureOfficialKamaron() (*models.Instance, error) {
 	if err := modsync.SyncServerModpack(existing.Path, manifest, progressCallback); err != nil {
 		return nil, err
 	}
+	existing.GameVersion = manifest.GameVersion
+	existing.Loader = manifest.Loader
+	existing.LoaderVersion = manifest.LoaderVersion
 	existing.ServerVersion = manifest.Version
-	if updated, err := a.store.UpdateInstance(*existing); err == nil {
-		existing = updated
-	}
-	return existing, nil
+	return a.store.UpdateInstance(*existing)
 }
 
 // findInstanceAtPath returns the instance already registered on the given
@@ -528,7 +516,7 @@ func (a *App) findInstanceAtPath(targetPath string) *models.Instance {
 func (a *App) CheckOfficialKamaronUpdate() (*models.UpdateCheckResult, error) {
 	target := a.store.FindInstanceByServerID("kamaron")
 	if target == nil {
-		manifest, err := modsync.FetchServerManifest(OfficialKamaronManifestURL)
+		manifest, err := modsync.FetchServerManifest(officialModpacks["kamaron"])
 		if err != nil {
 			return nil, err
 		}
@@ -541,11 +529,124 @@ func (a *App) CheckOfficialKamaronUpdate() (*models.UpdateCheckResult, error) {
 			Manifest:      manifest,
 		}, nil
 	}
-	return modsync.CheckServerUpdate(target.Path, OfficialKamaronManifestURL)
+	return modsync.CheckServerUpdate(target.Path, officialModpacks["kamaron"])
 }
 
 // SyncOfficialKamaron installs or refreshes the Kamaron modpack.
 func (a *App) SyncOfficialKamaron() (*models.Instance, error) { return a.EnsureOfficialKamaron() }
+
+// officialModpacks is the registry for server-provided modpacks.
+// Existing servers retain their legacy migration behavior.
+var officialModpacks = map[string]string{
+	"chilltown": OfficialChillTownManifestURL,
+	"kamaron":   OfficialKamaronManifestURL,
+}
+
+func validateOfficialManifest(manifest *models.ServerManifest, serverID string) error {
+	if manifest == nil || manifest.ID != serverID || manifest.Version == "" || manifest.GameVersion == "" {
+		return fmt.Errorf("manifest máy chủ %s không hợp lệ", serverID)
+	}
+	switch strings.ToLower(manifest.Loader) {
+	case "", "vanilla", "fabric", "forge", "neoforge":
+		return nil
+	default:
+		return fmt.Errorf("modloader không được hỗ trợ: %s", manifest.Loader)
+	}
+}
+
+// CheckOfficialModpack checks any registered server using its own manifest.
+func (a *App) CheckOfficialModpack(serverID string) (*models.UpdateCheckResult, error) {
+	manifestURL, ok := officialModpacks[serverID]
+	if !ok {
+		return nil, fmt.Errorf("máy chủ chính thức không tồn tại: %s", serverID)
+	}
+	instances := a.store.GetInstances()
+	var target *models.Instance
+	if serverID == "chilltown" {
+		target = storage.FindOfficialChillTown(instances)
+	} else {
+		target = a.store.FindInstanceByServerID(serverID)
+		if target == nil && serverID == "kamaron" {
+			target = a.findInstanceAtPath(filepath.Join(a.store.LauncherDir, "instances", KamaronInstanceFolder))
+			if target != nil && target.ServerID != "" && !strings.EqualFold(target.ServerID, serverID) {
+				return nil, fmt.Errorf("thư mục Kamaron đang thuộc máy chủ %s", target.ServerID)
+			}
+		}
+	}
+	if target != nil {
+		result, err := modsync.CheckServerUpdate(target.Path, manifestURL)
+		if err != nil {
+			return nil, err
+		}
+		if err := validateOfficialManifest(result.Manifest, serverID); err != nil {
+			return nil, err
+		}
+		if target.GameVersion != result.Manifest.GameVersion ||
+			!strings.EqualFold(target.Loader, result.Manifest.Loader) ||
+			target.LoaderVersion != result.Manifest.LoaderVersion {
+			result.HasUpdate = true
+		}
+		return result, nil
+	}
+	manifest, err := modsync.FetchServerManifest(manifestURL)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateOfficialManifest(manifest, serverID); err != nil {
+		return nil, err
+	}
+	return &models.UpdateCheckResult{ServerID: serverID, ServerName: manifest.Name, LatestVersion: manifest.Version, HasUpdate: true, Manifest: manifest}, nil
+}
+
+// SyncOfficialModpack installs or updates any server in the official registry.
+func (a *App) SyncOfficialModpack(serverID string) (*models.Instance, error) {
+	manifestURL, ok := officialModpacks[serverID]
+	if !ok {
+		return nil, fmt.Errorf("máy chủ chính thức không tồn tại: %s", serverID)
+	}
+	switch serverID {
+	case "chilltown":
+		return a.EnsureOfficialChillTown()
+	case "kamaron":
+		return a.EnsureOfficialKamaron()
+	}
+	manifest, err := modsync.FetchServerManifest(manifestURL)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateOfficialManifest(manifest, serverID); err != nil {
+		return nil, err
+	}
+	target := a.store.FindInstanceByServerID(serverID)
+	if target == nil {
+		id := uuid.New().String()
+		target = &models.Instance{ID: id, Name: manifest.Name, GameVersion: manifest.GameVersion, VersionType: "release",
+			Loader: manifest.Loader, LoaderVersion: manifest.LoaderVersion, MinMemoryMB: manifest.MinMemoryMB,
+			MaxMemoryMB: manifest.MaxMemoryMB, Path: a.store.GetUniqueInstancePath(manifest.Name, id),
+			ServerID: serverID, ServerSyncURL: manifestURL, CreatedAt: time.Now()}
+		if target.MinMemoryMB <= 0 {
+			target.MinMemoryMB = 2048
+		}
+		if target.MaxMemoryMB <= 0 {
+			target.MaxMemoryMB = 4096
+		}
+		if err := os.MkdirAll(target.Path, 0755); err != nil {
+			return nil, err
+		}
+		a.store.AddInstance(*target)
+	}
+	progress := func(event models.ProgressEvent) {
+		if a.ctx != nil {
+			runtime.EventsEmit(a.ctx, "game:progress", event)
+		}
+	}
+	if err := modsync.SyncServerModpack(target.Path, manifest, progress); err != nil {
+		return nil, err
+	}
+	target.GameVersion, target.Loader, target.LoaderVersion = manifest.GameVersion, manifest.Loader, manifest.LoaderVersion
+	target.ServerVersion, target.ServerSyncURL = manifest.Version, manifestURL
+	return a.store.UpdateInstance(*target)
+}
 
 // GetKamaronLiveStatus pings the Kamaron server directly on its own port so the
 // card never reports Chill Town's status.
@@ -795,6 +896,16 @@ func (a *App) InstallModToInstance(instanceID, slug string) (string, error) {
 
 	modsDir := filepath.Join(target.Path, "mods")
 	return modrinth.InstallMod(slug, target.GameVersion, target.Loader, modsDir)
+}
+
+// InstallPackToInstance installs a shader or resource pack into the matching game folder.
+func (a *App) InstallPackToInstance(instanceID, slug, projectType string) (string, error) {
+	for _, inst := range a.store.GetInstances() {
+		if inst.ID == instanceID {
+			return modrinth.InstallPack(slug, inst.GameVersion, projectType, inst.Path)
+		}
+	}
+	return "", fmt.Errorf("không tìm thấy instance")
 }
 
 func (a *App) InstallFPSBoostPack(instanceID string) (map[string]interface{}, error) {

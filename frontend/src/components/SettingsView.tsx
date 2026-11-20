@@ -29,7 +29,11 @@ import { EventsOn } from '../../wailsjs/runtime/runtime';
 
 interface SettingsViewProps {
   stats: models.SystemStats | null;
+  appVersion: string;
   launcherUpdate: models.LauncherUpdateInfo | null;
+  checkingLauncher: boolean;
+  launcherCheckError: boolean;
+  onEnvironmentChanged: (status: models.EnvironmentSetupStatus) => void;
   onCheckLauncherUpdate: () => void;
   onOpenLauncherUpdate: () => void;
   showToast?: (msg: string) => void;
@@ -37,12 +41,13 @@ interface SettingsViewProps {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   stats,
-  launcherUpdate,
+  appVersion, launcherUpdate, checkingLauncher, launcherCheckError, onEnvironmentChanged,
   onCheckLauncherUpdate,
   onOpenLauncherUpdate,
   showToast,
 }) => {
   const [settings, setSettings] = useState<models.AppSettings | null>(null);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [setupStatus, setSetupStatus] = useState<models.EnvironmentSetupStatus | null>(null);
   const [loadingEnv, setLoadingEnv] = useState(true);
@@ -55,6 +60,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       const [s, env] = await Promise.all([GetSettings(), CheckEnvironmentSetup()]);
       setSettings(s);
       setSetupStatus(env);
+      onEnvironmentChanged(env);
     } catch (e) {
       console.error('Failed to load settings/environment:', e);
     } finally {
@@ -75,10 +81,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleSave = async () => {
     if (!settings) return;
-    await UpdateSettings(settings);
-    setSaved(true);
-    if (showToast) showToast('Đã lưu cấu hình cài đặt thành công');
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(true);
+    try {
+      await UpdateSettings(settings);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      showToast?.(`Không thể lưu cài đặt. ${error}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSelectJavaPath = async (path: string) => {
@@ -140,11 +152,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         <button
           onClick={handleSave}
+          disabled={!settings || saving}
           className="status-pill rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
           style={{ height: '40px', padding: '0 20px', gap: '8px', fontSize: '13px' }}
         >
           {saved ? <Check className="w-4 h-4" /> : null}
-          <span>{saved ? 'Đã Lưu Thành Công' : 'Lưu Thay Đổi'}</span>
+          <span>{saved ? 'Đã lưu' : saving ? 'Đang lưu…' : 'Lưu thay đổi'}</span>
         </button>
       </div>
 
@@ -197,7 +210,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               {loadingEnv
                 ? 'Đang kiểm tra các bản Java runtime và cấu hình phần cứng trên máy...'
                 : isChillTownReady
-                ? `Đã nhận diện Java 17 chuẩn 64-bit (${setupStatus?.java17Path || 'Adoptium JRE'}). Khởi chạy mượt mà không lỗi crash.`
+                ? `Đã nhận diện Java 17 chuẩn 64-bit (${setupStatus?.java17Path || 'Adoptium JRE'}). Java 17 đã sẵn sàng.`
                 : 'Forge 1.20.1 yêu cầu Java 17 64-bit. Máy của bạn chưa có Java 17, hãy bấm nút cài đặt tự động bên dưới.'}
             </p>
           </div>
@@ -519,35 +532,38 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-cyan-400" />
             <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-              Tự Động Cập Nhật CamLauncher (In-Place Hot-Swap)
+              Cập nhật CamLauncher
             </h2>
           </div>
           <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold border border-cyan-500/30">
-            Phiên bản hiện tại: v2.4.1
+            {appVersion || launcherUpdate?.currentVersion || 'Đang đọc phiên bản…'}
           </span>
         </div>
 
         <p className="text-xs text-slate-300 leading-relaxed">
-          Cơ chế cập nhật độc quyền trên Windows: Tự động tải bản nhị phân mới và hoán đổi trực tiếp trong bộ nhớ. Người dùng <strong>không cần phải tải lại file cài đặt hay ấn wizard setup thủ công</strong>.
+          Kiểm tra và cài bản cập nhật ngay trong launcher.
         </p>
 
         <div className="flex items-center justify-between pt-2 border-t border-white/5">
           <div className="text-xs text-slate-400">
-            {launcherUpdate?.hasUpdate ? (
+            {checkingLauncher ? <span>Đang kiểm tra cập nhật…</span>
+            : launcherCheckError ? <span className="text-rose-300">Không kiểm tra được. Hãy thử lại.</span>
+            : launcherUpdate?.hasUpdate ? (
               <span className="text-cyan-300 font-bold">
                 ✨ Phát hiện bản cập nhật mới v{launcherUpdate.latestVersion} ({launcherUpdate.title || 'Mới'})
               </span>
             ) : (
-              <span>CamLauncher đang ở phiên bản mới nhất.</span>
+              <span>{launcherUpdate ? 'CamLauncher đang ở phiên bản mới nhất.' : 'Chưa kiểm tra cập nhật.'}</span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={onCheckLauncherUpdate}
+              disabled={checkingLauncher}
               className="btn-secondary px-4 py-2 text-xs font-semibold cursor-pointer"
             >
-              Kiểm Tra Cập Nhật
+              Kiểm tra cập nhật
             </button>
             {launcherUpdate?.hasUpdate && (
               <button

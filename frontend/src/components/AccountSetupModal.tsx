@@ -1,3 +1,4 @@
+import { Dialog } from './Dialog';
 import React, { useState, useEffect } from 'react';
 import { User, Sparkles, AlertCircle, Check, ArrowRight } from 'lucide-react';
 import { models } from '../../wailsjs/go/models';
@@ -5,6 +6,7 @@ import { AddOfflineAccount, RemoveAccount, SetActiveAccount } from '../../wailsj
 
 interface AccountSetupModalProps {
   isOpen: boolean;
+  onClose: () => void;
   existingAccounts: models.Account[];
   onAccountCreated: (account: models.Account) => void;
   onOpenMicrosoftLogin: () => void;
@@ -13,6 +15,7 @@ interface AccountSetupModalProps {
 
 export const AccountSetupModal: React.FC<AccountSetupModalProps> = ({
   isOpen,
+  onClose,
   existingAccounts,
   onAccountCreated,
   onOpenMicrosoftLogin,
@@ -91,8 +94,8 @@ export const AccountSetupModal: React.FC<AccountSetupModalProps> = ({
   const nameValid = isValidName(username.trim()) && !isCamPlayer(username.trim());
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl select-none">
-      <div className="modal-enter glass-panel border border-emerald-500/30 rounded-3xl max-w-md w-full p-8 shadow-2xl relative overflow-hidden flex flex-col items-center text-center">
+    <Dialog titleId="account-setup-title" busy={loading} onClose={onClose}>
+      <div className="modal-enter glass-panel border border-emerald-500/30 rounded-3xl max-w-md w-[min(440px,88vw)] p-8 shadow-2xl relative overflow-hidden flex flex-col items-center text-center">
         {/* Glow ambient circle */}
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -114,19 +117,19 @@ export const AccountSetupModal: React.FC<AccountSetupModalProps> = ({
         {/* Heading */}
         <div className="flex items-center gap-2 mb-1.5">
           <Sparkles className="w-5 h-5 text-emerald-400" />
-          <h2 className="text-2xl font-black text-white tracking-tight">
-            Thiết Lập Tên Nhân Vật
+          <h2 id="account-setup-title" className="text-2xl font-black text-white tracking-tight">
+            Đặt tên người chơi
           </h2>
         </div>
 
         <p className="text-xs text-slate-300 leading-relaxed mb-6 max-w-sm">
-          Chào mừng bạn đến với <strong>CamLauncher</strong>! Vui lòng đặt tên nhân vật (IGN) của bạn để vào máy chủ Chill Town và lưu giữ hành trang cá nhân.
+          Tên này dùng khi chơi bằng tài khoản offline.
         </p>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4 text-left">
           <div>
-            <label className="block text-xs font-bold text-slate-200 mb-2 flex items-center justify-between">
+            <label htmlFor="offline-player-name" className="block text-xs font-bold text-slate-200 mb-2 flex items-center justify-between">
               <span>Tên nhân vật (IGN)</span>
               <span className="text-[10px] text-slate-400 font-normal">3 - 16 ký tự</span>
             </label>
@@ -137,6 +140,7 @@ export const AccountSetupModal: React.FC<AccountSetupModalProps> = ({
               </div>
 
               <input
+                id="offline-player-name"
                 type="text"
                 value={username}
                 onChange={(e) => {
@@ -167,14 +171,14 @@ export const AccountSetupModal: React.FC<AccountSetupModalProps> = ({
           {/* Primary CTA */}
           <button
             type="submit"
-            disabled={loading || !username.trim()}
+            disabled={loading || !nameValid}
             className={`w-full py-3.5 rounded-xl font-black text-sm tracking-wide flex items-center justify-center gap-2 cursor-pointer btn-tactile ${
               nameValid && !loading
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 glow-primary shadow-lg shadow-emerald-500/25'
                 : 'bg-white/[0.08] text-slate-500 cursor-not-allowed border border-white/5'
             }`}
           >
-            <span>{loading ? 'Đang Thiết Lập...' : 'Bắt Đầu Chơi Ngay'}</span>
+            <span>{loading ? 'Đang Thiết Lập...' : 'Lưu tên người chơi'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
@@ -199,9 +203,10 @@ export const AccountSetupModal: React.FC<AccountSetupModalProps> = ({
             <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
             <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
           </svg>
-          <span>Đăng nhập tài khoản Microsoft (Bản quyền)</span>
+          <span>Dùng tài khoản Microsoft</span>
         </button>
+        <button className="cam-button mt-3" type="button" onClick={onClose} disabled={loading}>Để sau</button>
       </div>
-    </div>
+    </Dialog>
   );
 };

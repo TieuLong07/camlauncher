@@ -1,14 +1,14 @@
+import { Dialog } from './Dialog';
 import React, { useState, useEffect } from 'react';
 import {
+  Ellipsis,
   Plus,
   Layers,
   FolderOpen,
   Trash2,
-  HardDrive,
   Check,
   X,
   RotateCw,
-  ExternalLink,
   Settings,
   Sparkles,
   Zap,
@@ -40,7 +40,7 @@ interface InstancesViewProps {
   stats?: models.SystemStats | null;
   onSelectInstance: (inst: models.Instance) => void;
   onOpenSettings: (inst: models.Instance) => void;
-  onRefresh: () => void;
+  onRefresh: () => Promise<unknown>;
   showToast?: (msg: string) => void;
 }
 
@@ -160,11 +160,16 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
     return true;
   });
 
-  const handleManualRefresh = () => {
+  const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    onRefresh();
-    if (showToast) showToast('Đã quét lại danh sách bản cài đặt cục bộ');
-    setTimeout(() => setIsRefreshing(false), 800);
+    try {
+      await onRefresh();
+      showToast?.('Đã làm mới danh sách bản cài.');
+    } catch (error) {
+      showToast?.(`Không thể quét bản cài. ${error}`);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleResetAutoName = () => {
@@ -212,7 +217,8 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
       setShowCreateModal(false);
       setName('');
       setIsNameCustomized(false);
-      onRefresh();
+      await onRefresh();
+      onSelectInstance(newInst);
       if (showToast) showToast(`Đã tạo thành công instance "${instName}"`);
     } catch (err: any) {
       if (showToast) showToast(`Lỗi tạo instance: ${err}`);
@@ -225,7 +231,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
     if (confirm(`Bạn có chắc muốn xóa bản cài "${instName}"? (Saves và mods sẽ bị xóa)`)) {
       try {
         await DeleteInstance(id);
-        onRefresh();
+        await onRefresh();
         if (showToast) showToast(`Đã xóa instance "${instName}"`);
       } catch (err: any) {
         if (showToast) showToast(`Không thể xóa: ${err}`);
@@ -233,55 +239,15 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
     }
   };
 
-  const getInstanceBadge = (inst: models.Instance) => {
-    const n = inst.name.toLowerCase();
-    if (n.includes('boosted') || n.includes('fps')) {
-      return {
-        label: 'TỐI ƯU FPS',
-        className: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
-      };
-    }
-    if (n.includes('cooking') || n.includes('valenhardt') || inst.loader === 'forge') {
-      return {
-        label: 'MODPACK LỚN',
-        className: 'bg-purple-500/15 text-purple-300 border-purple-500/25',
-      };
-    }
-    if (inst.loader === 'vanilla' || !inst.loader) {
-      return {
-        label: 'GỐC',
-        className: 'bg-slate-500/15 text-slate-300 border-slate-500/25',
-      };
-    }
-    return {
-      label: inst.loader.toUpperCase(),
-      className: 'bg-blue-500/15 text-blue-300 border-blue-500/25',
-    };
-  };
-
-  const getInstanceDesc = (inst: models.Instance) => {
-    const n = inst.name.toLowerCase();
-    if (n.includes('cooking')) {
-      return "Hơn 246 mod Farmer's Delight, Tech & Cooking bản quyền";
-    }
-    if (n.includes('boosted')) {
-      return 'Nạp sẵn Sodium, Lithium, Iris Shaders tối ưu 300% FPS';
-    }
-    if (inst.loader === 'vanilla' || !inst.loader) {
-      return 'Bản sạch nguyên bản không nạp mod, độ ổn định tuyệt đối';
-    }
-    return `Minecraft ${inst.gameVersion} (${inst.loader?.toUpperCase() || 'Vanilla'}) tùy chỉnh độc lập`;
-  };
-
   const iconOptions = [
-    { id: 'cube', label: 'Khối Minecraft', icon: <Box className="w-4 h-4 text-emerald-400" /> },
+    { id: 'cube', label: 'Khối Minecraft', icon: <Box className="w-4 h-4 text-orange-400" /> },
     { id: 'flask', label: 'Bình thuốc', icon: <FlaskConical className="w-4 h-4 text-purple-400" /> },
     { id: 'swords', label: 'Gươm chiến', icon: <Swords className="w-4 h-4 text-rose-400" /> },
     { id: 'pickaxe', label: 'Cúp đào', icon: <Pickaxe className="w-4 h-4 text-amber-400" /> },
     { id: 'skull', label: 'Boss / Hardcore', icon: <Skull className="w-4 h-4 text-purple-300" /> },
     { id: 'zap', label: 'Tia sét FPS', icon: <Zap className="w-4 h-4 text-yellow-400" /> },
     { id: 'shield', label: 'Khiên bảo vệ', icon: <Shield className="w-4 h-4 text-blue-400" /> },
-    { id: 'sparkles', label: 'Ma thuật', icon: <Sparkles className="w-4 h-4 text-cyan-400" /> },
+    { id: 'sparkles', label: 'Ma thuật', icon: <Sparkles className="w-4 h-4 text-orange-400" /> },
   ];
 
   return (
@@ -289,221 +255,92 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
       className="flex-1 overflow-y-auto flex flex-col select-none relative z-10"
       style={{ padding: '22px 24px 28px 24px', gap: '22px', boxSizing: 'border-box' }}
     >
-      {/* Header Row */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl md:text-2xl font-black text-white flex items-center tracking-tight gap-2.5">
-              <Layers className="w-6 h-6 text-emerald-400" />
-              <span>Bản cài đặt cá nhân</span>
-            </h1>
-            <span className="status-pill font-mono font-extrabold text-[10px] px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
-              BETA
-            </span>
-            <span className="status-pill font-mono font-bold text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
-              {instances.length} bản cài
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Instance cục bộ và modpack được quản lý độc lập trên ổ cứng của bạn
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={handleManualRefresh}
-            className="status-pill rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all font-semibold cursor-pointer flex items-center gap-2"
-            style={{ height: '38px', padding: '0 16px', fontSize: '12.5px' }}
-            title="Quét lại thư mục instances để cập nhật"
-          >
-            <RotateCw className={`w-3.5 h-3.5 text-cyan-400 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>Quét lại máy</span>
+      <div className="instance-header">
+        <div><h1>Bản cài cá nhân</h1><p>{instances.length} bản cài trên máy</p></div>
+        <div className="instance-header-actions">
+          <button className="cam-button" onClick={handleManualRefresh} disabled={isRefreshing}>
+            <RotateCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+            {isRefreshing ? 'Đang quét…' : 'Quét lại máy'}
           </button>
-
-          <button
-            onClick={() => {
-              setShowCreateModal(true);
-              setIsNameCustomized(false);
-            }}
-            className="status-pill rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold transition-all shadow-md shadow-emerald-500/20 cursor-pointer flex items-center gap-2"
-            style={{ height: '38px', padding: '0 18px', fontSize: '13px' }}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Thêm bản cài mới</span>
-          </button>
+          <button className="cam-button cam-primary" onClick={() => {
+            setShowCreateModal(true);
+            setIsNameCustomized(false);
+          }}><Plus size={17} /> Thêm bản cài</button>
         </div>
       </div>
 
-      {/* Grid of Instances */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-          gap: '20px',
-        }}
-      >
-        {instances.map((inst) => {
-          const isSelected = activeInstance?.id === inst.id;
-          const badge = getInstanceBadge(inst);
-          const desc = getInstanceDesc(inst);
-          const loaderLabel = inst.loader ? inst.loader.toUpperCase() : 'VANILLA';
-          const ramGb = Math.round(inst.maxMemoryMb / 1024);
-
-          return (
-            <div
-              key={inst.id}
-              style={{
-                padding: '24px',
-                borderRadius: '22px',
-                gap: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-              className={`glass-panel border transition-all ${
-                isSelected
-                  ? 'border-emerald-500/50 bg-emerald-500/[0.06] shadow-xl shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                  : 'border-white/[0.08] hover:border-white/[0.18] bg-slate-900/60'
-              }`}
-            >
-              {/* Card Top: Badges and Title */}
-              <div className="flex flex-col gap-2.5">
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`status-pill font-mono font-bold text-[10px] tracking-wider uppercase px-2.5 py-0.5 rounded-md border ${badge.className}`}
-                  >
-                    {badge.label}
+      {instances.length === 0 ? (
+        <p className="instance-empty">Chưa có bản cài trên máy. Thêm một bản để bắt đầu.</p>
+      ) : (
+        <ul className="instance-list" aria-label="Bản cài trên máy">
+          {instances.map((instance) => {
+            const selected = activeInstance?.id === instance.id;
+            return (
+              <li key={instance.id} className="instance-row" data-selected={selected}>
+                <button className="instance-select" aria-pressed={selected}
+                  onClick={() => onSelectInstance(instance)}>
+                  <span className="readiness-icon"><Layers size={19} /></span>
+                  <span className="instance-name">
+                    <strong>{instance.name}</strong>
+                    <small>Minecraft {instance.gameVersion} · {instance.loader || 'Vanilla'}{instance.loaderVersion ? ` ${instance.loaderVersion}` : ''}</small>
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    MC {inst.gameVersion}
-                  </span>
-                </div>
-
-                <h3 className="font-extrabold text-lg text-white tracking-tight truncate">
-                  {inst.name}
-                </h3>
-
-                <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">
-                  {desc}
-                </p>
-              </div>
-
-              {/* Card Spec Details */}
-              <div className="bg-black/35 rounded-xl border border-white/5 px-3.5 py-2.5 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-slate-400">
-                  <HardDrive className="w-3.5 h-3.5 text-cyan-400" />
-                  <span className="font-semibold text-slate-300 font-mono">
-                    {loaderLabel} {inst.loaderVersion ? `(${inst.loaderVersion})` : ''}
-                  </span>
-                </div>
-                <span className="font-mono text-emerald-400 font-bold">
-                  {ramGb} GB RAM
-                </span>
-              </div>
-
-              {/* Card Footer Actions */}
-              <div className="flex items-center justify-between pt-1 border-t border-white/5 gap-2">
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => OpenInstanceFolder(inst.id)}
-                    className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] text-slate-400 hover:text-white transition cursor-pointer"
-                    title="Mở thư mục instance"
-                  >
-                    <FolderOpen className="w-4 h-4 text-cyan-400" />
-                  </button>
-
-                  <button
-                    onClick={() => onOpenSettings(inst)}
-                    className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] text-slate-400 hover:text-white transition cursor-pointer"
-                    title="Cấu hình instance"
-                  >
-                    <Settings className="w-4 h-4 text-slate-300" />
-                  </button>
-
-                  {instances.length > 1 && (
-                    <button
-                      onClick={() => handleDelete(inst.id, inst.name)}
-                      className="p-2 rounded-xl bg-white/[0.04] hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 transition cursor-pointer"
-                      title="Xóa instance"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => onSelectInstance(inst)}
-                  className={`status-pill px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 shadow-sm'
-                      : 'bg-white/[0.06] hover:bg-emerald-500/15 text-slate-200 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30'
-                  }`}
-                  style={{ height: '36px' }}
-                >
-                  {isSelected ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>ĐANG CHỌN</span>
-                    </>
-                  ) : (
-                    <span>Chọn</span>
-                  )}
+                  <span className="instance-ram">{Math.round(instance.maxMemoryMb / 1024)} GB RAM</span>
+                  <span className="instance-select-label">{selected && <Check size={15} />}{selected ? 'Đang chọn' : 'Chọn'}</span>
                 </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                <details className="instance-menu">
+                  <summary className="cam-button cam-icon" aria-label={`Thao tác với ${instance.name}`}><Ellipsis size={19} /></summary>
+                  <div className="instance-menu-actions">
+                    <button className="cam-button" onClick={() => OpenInstanceFolder(instance.id).catch((error) => showToast?.(String(error)))}>
+                      <FolderOpen size={16} /> Mở thư mục
+                    </button>
+                    <button className="cam-button" onClick={() => onOpenSettings(instance)}><Settings size={16} /> Cấu hình</button>
+                    {instances.length > 1 && <button className="cam-button cam-danger" onClick={() => handleDelete(instance.id, instance.name)}>
+                      <Trash2 size={16} /> Xóa bản cài
+                    </button>}
+                  </div>
+                </details>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <button className="cam-button self-start" onClick={() => OpenFolder('').catch((error) => showToast?.(String(error)))}>
+        <FolderOpen size={16} /> Mở thư mục launcher
+      </button>
 
-      {/* Bottom Info Banner */}
-      <div className="glass-panel border border-white/10 rounded-2xl p-4 bg-slate-950/60 flex items-center justify-between flex-wrap gap-3 mt-2">
-        <p className="text-xs text-slate-400">
-          Các bản cài đặt cá nhân chạy độc lập và không ảnh hưởng đến cấu hình P2P server.
-        </p>
-        <button
-          onClick={() => OpenFolder('')}
-          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 cursor-pointer"
-        >
-          <span>Mở thư mục gốc</span>
-          <ExternalLink className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* ======================================================== */}
-      {/* TLAUNCHER / PRISM STYLE FULL CREATE INSTANCE MODAL */}
-      {/* ======================================================== */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+        <Dialog titleId="create-instance-title" busy={creating} onClose={() => setShowCreateModal(false)}>
           <div
-            className="glass-panel modal-enter w-full max-w-2xl border border-emerald-500/30 shadow-2xl relative rounded-3xl bg-slate-950/95 flex flex-col my-8"
-            style={{ padding: '28px 32px', gap: '22px' }}
+            className="create-instance-panel glass-panel relative flex flex-col"
+            style={{ padding: '22px 26px', gap: '14px' }}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
                   <Plus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-white tracking-tight">
-                    Tạo Bản Cài Đặt Mới (Instance)
+                  <h2 id="create-instance-title" className="text-xl font-extrabold text-white tracking-tight">
+                    Tạo bản cài
                   </h2>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Hỗ trợ đầy đủ mọi phiên bản Minecraft, Fabric, Forge và NeoForge chuẩn TLauncher
+                    Chọn phiên bản Minecraft và trình tải mod.
                   </p>
                 </div>
               </div>
               <button
+                disabled={creating}
                 onClick={() => setShowCreateModal(false)}
+                aria-label="Đóng hộp thoại"
                 className="w-8 h-8 rounded-xl hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="flex flex-col gap-5 text-xs overflow-y-auto max-h-[70vh] pr-1">
+            <div className="flex flex-col gap-4 text-xs min-h-0 overflow-y-auto pr-2">
               {/* SECTION 1: MOD LOADER SELECTOR (4 CARDS) */}
               <div className="flex flex-col gap-2">
                 <label className="text-slate-200 font-bold uppercase tracking-wider text-[11px] flex items-center justify-between">
@@ -526,13 +363,13 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
                     onClick={() => setLoader('vanilla')}
                     className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between gap-2 cursor-pointer ${
                       loader === 'vanilla'
-                        ? 'border-emerald-500/50 bg-emerald-500/15 shadow-md shadow-emerald-500/10'
+                        ? 'border-emerald-500/50 bg-orange-500/15 shadow-md shadow-emerald-500/10'
                         : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] text-slate-400'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <Box className={`w-5 h-5 ${loader === 'vanilla' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                      {loader === 'vanilla' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                      <Box className={`w-5 h-5 ${loader === 'vanilla' ? 'text-orange-400' : 'text-slate-400'}`} />
+                      {loader === 'vanilla' && <Check className="w-3.5 h-3.5 text-orange-400" />}
                     </div>
                     <div>
                       <div className="font-bold text-white text-xs">Vanilla</div>
@@ -549,17 +386,17 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
                     }}
                     className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between gap-2 cursor-pointer ${
                       loader === 'fabric'
-                        ? 'border-cyan-500/50 bg-cyan-500/15 shadow-md shadow-cyan-500/10'
+                        ? 'border-orange-500/50 bg-cyan-500/15 shadow-md shadow-cyan-500/10'
                         : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] text-slate-400'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <Zap className={`w-5 h-5 ${loader === 'fabric' ? 'text-cyan-400' : 'text-slate-400'}`} />
-                      {loader === 'fabric' && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                      <Zap className={`w-5 h-5 ${loader === 'fabric' ? 'text-orange-400' : 'text-slate-400'}`} />
+                      {loader === 'fabric' && <Check className="w-3.5 h-3.5 text-orange-400" />}
                     </div>
                     <div>
                       <div className="font-bold text-white text-xs">Fabric</div>
-                      <div className="text-[10px] text-cyan-300/80 mt-0.5">Tối ưu FPS cao</div>
+                      <div className="text-[10px] text-orange-300/80 mt-0.5">Tối ưu FPS cao</div>
                     </div>
                   </button>
 
@@ -625,7 +462,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
                       onClick={() => setVersionFilter('releases')}
                       className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition cursor-pointer ${
                         versionFilter === 'releases'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
@@ -636,7 +473,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
                       onClick={() => setVersionFilter('snapshots')}
                       className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition cursor-pointer ${
                         versionFilter === 'snapshots'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
@@ -647,7 +484,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
                       onClick={() => setVersionFilter('all')}
                       className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition cursor-pointer ${
                         versionFilter === 'all'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
@@ -665,7 +502,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
                       onClick={() => setSelectedVersion(v)}
                       className={`status-pill px-2.5 py-1 rounded-lg font-mono text-[11px] transition cursor-pointer ${
                         selectedVersion === v
-                          ? 'bg-emerald-500 text-slate-950 font-extrabold shadow-sm'
+                          ? 'bg-orange-400 text-slate-950 font-extrabold shadow-sm'
                           : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/10'
                       }`}
                     >
@@ -711,7 +548,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
                   <div className="flex items-center justify-between">
                     <label className="text-slate-200 font-bold uppercase tracking-wider text-[11px] flex items-center gap-2">
                       <span>3. Phiên Bản {loader.toUpperCase()} Loader</span>
-                      {loadingLoaders && <Loader2 className="w-3 h-3 text-cyan-400 animate-spin" />}
+                      {loadingLoaders && <Loader2 className="w-3 h-3 text-orange-400 animate-spin" />}
                     </label>
 
                     <label className="flex items-center gap-1.5 text-[11px] text-slate-300 cursor-pointer">
@@ -751,7 +588,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
                     </select>
 
                     {recommendedLoaderVersion && (
-                      <span className="status-pill px-2.5 py-1.5 rounded-xl font-mono text-[10.5px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
+                      <span className="status-pill px-2.5 py-1.5 rounded-xl font-mono text-[10.5px] font-bold bg-orange-500/15 text-orange-300 border border-orange-500/30 shrink-0">
                         Khuyên dùng: {recommendedLoaderVersion}
                       </span>
                     )}
@@ -769,7 +606,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
                     <button
                       type="button"
                       onClick={handleResetAutoName}
-                      className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                      className="text-[10px] text-orange-400 hover:text-orange-300 flex items-center gap-1 cursor-pointer"
                       title="Đặt lại tên tự động"
                     >
                       <Wand2 className="w-3 h-3" />
@@ -817,10 +654,10 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
               <div className="flex flex-col gap-2 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
                 <div className="flex justify-between items-center text-slate-300">
                   <span className="font-bold text-[11px] uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                    <Cpu className="w-3.5 h-3.5 text-orange-400" />
                     <span>5. Phân Bổ Bộ Nhớ RAM</span>
                   </span>
-                  <span className="font-mono text-emerald-400 font-extrabold text-sm">
+                  <span className="font-mono text-orange-400 font-extrabold text-sm">
                     {maxRAM} MB ({Math.round(maxRAM / 1024)} GB)
                   </span>
                 </div>
@@ -844,7 +681,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
                         onClick={() => setMaxRAM(ram)}
                         className={`status-pill px-2.5 py-1 rounded-lg font-mono text-[10.5px] transition cursor-pointer ${
                           maxRAM === ram
-                            ? 'bg-emerald-500 text-slate-950 font-bold'
+                            ? 'bg-orange-400 text-slate-950 font-bold'
                             : 'bg-white/5 hover:bg-white/10 text-slate-400'
                         }`}
                       >
@@ -863,7 +700,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
               {loader === 'fabric' && (
                 <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/[0.06] border border-emerald-500/25">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
                       <Zap className="w-4 h-4" />
                     </div>
                     <div className="flex flex-col">
@@ -887,9 +724,10 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end pt-3 border-t border-white/10 gap-3">
+            <div className="flex shrink-0 items-center justify-end pt-3 border-t border-white/10 gap-3">
               <button
                 type="button"
+                disabled={creating}
                 onClick={() => setShowCreateModal(false)}
                 className="status-pill px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition cursor-pointer"
                 style={{ height: '38px', padding: '0 18px' }}
@@ -917,7 +755,7 @@ export const InstancesView: React.FC<InstancesViewProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </main>
   );

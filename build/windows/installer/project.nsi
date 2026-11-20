@@ -96,6 +96,14 @@ Section
 
     !insertmacro wails.files
 
+    # Prepare the current user's launcher data without opening the UI.
+    ExecWait '"$INSTDIR\${PRODUCT_EXECUTABLE}" --initialize' $0
+    IntCmp $0 0 init_done
+    MessageBox MB_ICONSTOP "CamLauncher could not prepare its data folders. Check access to your AppData folder and run the installer again."
+    SetErrorLevel 1
+    Abort
+    init_done:
+
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
 

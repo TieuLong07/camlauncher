@@ -293,6 +293,7 @@ type UpdateCheckResult struct {
 	HasUpdate         bool            `json:"hasUpdate"`
 	IsDrifted         bool            `json:"isDrifted"`
 	MissingMods       []string        `json:"missingMods,omitempty"`
+	ModifiedMods      []string        `json:"modifiedMods,omitempty"`
 	ExtraMods         []string        `json:"extraMods,omitempty"`
 	Changelog         string          `json:"changelog"`
 	FilesToDownload   []ModpackFile   `json:"filesToDownload"`
@@ -303,11 +304,16 @@ type UpdateCheckResult struct {
 
 // LocalSyncState tracks what files are currently managed for this instance
 type LocalSyncState struct {
-	ServerID       string    `json:"serverId"`
-	SyncedVersion  string    `json:"syncedVersion"`
-	SyncedAt       time.Time `json:"syncedAt"`
-	ManagedFiles   []string  `json:"managedFiles"` // relative paths e.g. ["mods/a.jar", "mods/b.jar"]
-	LegacyMigrated bool      `json:"legacyMigrated,omitempty"`
+	ServerID            string            `json:"serverId"`
+	SyncedVersion       string            `json:"syncedVersion"`
+	SyncedAt            time.Time         `json:"syncedAt"`
+	ManagedFiles        []string          `json:"managedFiles"` // relative paths e.g. ["mods/a.jar", "mods/b.jar"]
+	LegacyMigrated      bool              `json:"legacyMigrated,omitempty"`
+	ArchiveSHA256       string            `json:"archiveSha256,omitempty"`
+	ArchiveManagedFiles []string          `json:"archiveManagedFiles,omitempty"`
+	ManagedModHashes    map[string]string `json:"managedModHashes,omitempty"`
+	ManagedPackHashes   map[string]string `json:"managedPackHashes,omitempty"`
+	ManifestFiles       []string          `json:"manifestFiles,omitempty"`
 }
 
 // LauncherUpdateInfo stores update metadata for the CamLauncher binary itself

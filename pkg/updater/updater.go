@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	CurrentLauncherVersion    = "0.4.0-beta"
+	CurrentLauncherVersion    = "0.5.0-beta"
 	DefaultUpdateManifestURL  = "https://raw.githubusercontent.com/TieuLong07/camlauncher/main/manifests/launcher.json"
 	FallbackUpdateManifestURL = "https://owlys.io.vn/CamLauncher/releases/latest.json"
 )

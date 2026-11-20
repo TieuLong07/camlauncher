@@ -1,3 +1,4 @@
+import { Dialog } from './Dialog';
 import React, { useState } from 'react';
 import {
   Sparkles,
@@ -40,7 +41,7 @@ export const LauncherUpdateModal: React.FC<LauncherUpdateModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <Dialog titleId="launcher-update-title" busy={updating} onClose={onClose}>
       <div className="glass-panel w-full max-w-lg p-6 space-y-5 border border-cyan-500/40 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-white/10 pb-4">
@@ -50,7 +51,7 @@ export const LauncherUpdateModal: React.FC<LauncherUpdateModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-white">Có Bản Cập Nhật CamLauncher Mới!</h2>
+                <h2 id="launcher-update-title" className="text-lg font-black text-white">Cập nhật CamLauncher</h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
                   v{updateInfo.latestVersion}
                 </span>
@@ -64,6 +65,7 @@ export const LauncherUpdateModal: React.FC<LauncherUpdateModalProps> = ({
           {!updating && (
             <button
               onClick={onClose}
+              aria-label="Đóng hộp thoại"
               className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -153,6 +155,6 @@ export const LauncherUpdateModal: React.FC<LauncherUpdateModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 };

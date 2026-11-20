@@ -34,6 +34,29 @@ wails build
 
 The production binary is produced at `build/bin/CamLauncher.exe`.
 
+## Official modpack updates
+
+Official servers are registered in `officialModpacks` in `app.go` and displayed
+from `frontend/src/data/servers.ts`. Add an ID and manifest URL to the registry
+and the matching server metadata to the frontend when introducing a server.
+The shared `CheckOfficialModpack` and `SyncOfficialModpack` APIs handle its
+modpack. A server with a special connection or migration also needs its own
+connection or migration handling.
+
+Publish the archive and any individual files before changing the server's
+manifest. Set a new `version`, the archive URL, its SHA-256 and size, and list
+the exact official JAR filenames in `expectedMods`. Use `files` for individual
+overrides with a URL, SHA-1 and size. The archive is a ZIP whose paths are
+relative to the instance root, such as `mods/example.jar`,
+`config/example.toml` and `kubejs/server_scripts/example.js`.
+
+The launcher detects missing and modified official mods, preserves additional
+player mods and stages updates before applying them. Worlds, player options,
+screenshots and other player data are preserved. Resource packs and shaders
+added by the archive are updated when unchanged by the player. Legacy
+installations without recorded mod hashes perform one baseline sync to establish
+the official versions. The first baseline may require downloading the archive.
+
 ## Security model for the P2P tunnel
 
 The P2P broker source lives in `deploy/camlauncher-key-broker.js`. Its Tailscale OAuth credentials are stored only as Cloudflare Worker Secrets:

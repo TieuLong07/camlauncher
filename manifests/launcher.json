@@ -1,8 +1,8 @@
 {
-  "latestVersion": "0.2.1-beta",
-  "title": "CamLauncher Beta 0.2.1",
-  "changelog": "Tự động hiển thị popup cập nhật trực quan ngay khi mở launcher; bổ sung cơ chế fallback endpoint cập nhật từ GitHub sang Owlys Cloud.",
-  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.2.1-beta/CamLauncher.exe",
-  "releaseDate": "2026-10-20",
-  "sha256": "4465cfdfb828d1c4709c793723a34cc9b11446c62ad326bdacd7180c1e42d0bb"
+  "latestVersion": "0.3.0-beta",
+  "title": "CamLauncher Beta 0.3.0",
+  "changelog": "Thêm máy chủ Kamaron (Lẩu Cam) vào danh sách đề xuất với nút cài 1 chạm vào instances/kamaron; chuyển trang chính sang thanh chọn server và ping riêng từng máy chủ. Sửa Forge installer báo lỗi thật thay vì im lặng, hỗ trợ NeoForge.",
+  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.3.0-beta/CamLauncher.exe",
+  "releaseDate": "2026-11-20",
+  "sha256": "a05978a621865d17dc90c3af4c1c0460f883a6e8a741dffc4fe3d1d8a8a7cdf1"
 }

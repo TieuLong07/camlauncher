@@ -2,9 +2,9 @@
   "id": "kamaron",
   "name": "Kamaron",
   "tagline": "Lẩu Cam - Forge 1.20.1 + Sinytra Connector",
-  "description": "Modpack chính thức của máy chủ Kamaron (Lẩu Cam), chuyển từ hosting cũ về VPS nhà. Forge 1.20.1 kết hợp Sinytra Connector để chạy song song mod Fabric, 96 mods, thế giới sinh tồn ẩm thực - xe cộ - NPC.",
-  "version": "1.0.3",
-  "changelog": "Thêm Hands-On Delight, thư viện Diegesis và Flashback.",
+  "description": "Modpack chính thức của máy chủ Kamaron (Lẩu Cam), chuyển từ hosting cũ về VPS nhà. Forge 1.20.1 kết hợp Sinytra Connector để chạy song song mod Fabric, 95 mods, thế giới sinh tồn ẩm thực - xe cộ - NPC.",
+  "version": "1.0.4",
+  "changelog": "Gỡ Flashback khỏi modpack Kamaron.",
   "gameVersion": "1.20.1",
   "loader": "forge",
   "loaderVersion": "47.4.10",
@@ -62,12 +62,6 @@
       "size": 1657280
     },
     {
-      "path": "mods/flashback-1.0.1.jar",
-      "url": "https://github.com/TieuLong07/camlauncher/releases/download/kamaron-v1.0.0/flashback-1.0.1.jar",
-      "sha1": "14ee0df1f23bfcb77c598de02c8bd29b4477f061",
-      "size": 204281554
-    },
-    {
       "path": "mods/diegesis-forge-1.20.1-1.0.0-beta.16.jar",
       "url": "https://github.com/TieuLong07/camlauncher/releases/download/kamaron-v1.0.0/diegesis-forge-1.20.1-1.0.0-beta.16.jar",
       "sha1": "6246ec63fa96b03fa8e49d104087c58cc1bcc456",
@@ -112,7 +106,6 @@
     "ferritecore-6.0.1-forge.jar",
     "festive_delight-2.0.0-forge-1.20.1.jar",
     "fishingreal-forge-1.20.1-1.9.1-backport.jar",
-    "flashback-1.0.1.jar",
     "foodeffecttooltips+forge-1.20.1-1.6.0.jar",
     "ftb-chunks-forge-2001.3.8.jar",
     "ftb-essentials-forge-2001.2.4.jar",

@@ -1,10 +1,10 @@
 {
-  "latestVersion": "0.5.2-beta",
-  "title": "CamLauncher Beta 0.5.2",
-  "changelog": "Thêm Mod tùy chỉnh gợi ý ngay trang chính Kamaron: tự chọn cài/gỡ Flashback, nhận biết mod đã cài và giữ mod cá nhân khi đồng bộ modpack.",
-  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.2-beta/CamLauncher.exe",
-  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.2-beta/CamLauncher-Setup-0.5.2-beta.exe",
-  "setupSha256": "1cf613aee76f414c8ee765476386e0175d5d8cb89a4f5b1c8fc18d2eb0609dff",
+  "latestVersion": "0.5.3-beta",
+  "title": "CamLauncher Beta 0.5.3",
+  "changelog": "Sửa Flashback để kết nối server không cài mod; cập nhật Flashback trong mục Mod tùy chỉnh gợi ý.",
+  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.3-beta/CamLauncher.exe",
+  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.3-beta/CamLauncher-Setup-0.5.3-beta.exe",
+  "setupSha256": "79540d474a7d0e433f092e649384ae62e92c1d6bb9d75feb82d93669be892268",
   "releaseDate": "2026-11-26",
-  "sha256": "61db7e41508c970b67ec82c1391e08561bfa85914c0b44e5d1224b68e514838b"
+  "sha256": "592b078e9d84ea05266f4c0c370e8c1a40804b2080d4bc18e9031b49e29cf0f6"
 }

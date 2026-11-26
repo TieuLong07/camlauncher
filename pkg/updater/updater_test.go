@@ -55,6 +55,30 @@ func TestReplacementRestoresOriginalWhenNewFileMissing(t *testing.T) {
 	}
 }
 
+func TestReplacementClearsStaleBackup(t *testing.T) {
+	dir := t.TempDir()
+	current := filepath.Join(dir, "app.exe")
+	if err := os.WriteFile(current, []byte("original"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	// Simulates a leftover .old whose process never exited; the update must still
+	// proceed instead of refusing forever.
+	if err := os.WriteFile(current+".old", []byte("stale"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	replacement := filepath.Join(dir, "app.exe.new")
+	if err := os.WriteFile(replacement, []byte("updated"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := replaceExecutable(current, replacement); err != nil {
+		t.Fatalf("stale backup must not block the update: %v", err)
+	}
+	data, err := os.ReadFile(current)
+	if err != nil || string(data) != "updated" {
+		t.Fatalf("replacement not applied: %q %v", data, err)
+	}
+}
+
 func TestRunningExecutableReplacement(t *testing.T) {
 	if os.Getenv("CAM_TEST_REPLACEMENT") == "child" {
 		exe, err := os.Executable()

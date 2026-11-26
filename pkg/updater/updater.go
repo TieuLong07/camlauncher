@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	CurrentLauncherVersion    = "0.5.4-beta"
+	CurrentLauncherVersion    = "0.5.5-beta"
 	DefaultUpdateManifestURL  = "https://raw.githubusercontent.com/TieuLong07/camlauncher/main/manifests/launcher.json"
 	FallbackUpdateManifestURL = "https://owlys.io.vn/CamLauncher/releases/latest.json"
 )
@@ -34,10 +34,20 @@ func CleanupOldVersions() {
 	if err != nil {
 		return
 	}
-	oldPath := exePath + ".old"
-	if _, err := os.Stat(oldPath); err == nil {
-		_ = os.Remove(oldPath)
+	discardBackup(exePath + ".old")
+}
+
+// discardBackup deletes a leftover .old binary, or renames it to a unique name
+// when Windows still has the image mapped by a lingering process. A stale .old
+// must never block a later update.
+func discardBackup(oldPath string) {
+	if _, err := os.Stat(oldPath); err != nil {
+		return
 	}
+	if err := os.Remove(oldPath); err == nil {
+		return
+	}
+	_ = os.Rename(oldPath, fmt.Sprintf("%s.%d", oldPath, time.Now().Unix()))
 }
 
 // CheckLauncherUpdate checks if a newer version of CamLauncher is available
@@ -252,11 +262,18 @@ func ApplyLauncherUpdate(
 }
 
 // replaceExecutable leaves the original at .old on success and restores it on
-// failure. Existing .old files are never removed silently.
+// failure. A pre-existing .old is normally a leftover from an update whose old
+// process never exited: Windows refuses to delete an image that is still mapped,
+// but it does allow a rename, so quarantine it instead of blocking the update.
 func replaceExecutable(current, replacement string) error {
 	old := current + ".old"
 	if _, err := os.Stat(old); err == nil {
-		return fmt.Errorf("bản sao cũ vẫn tồn tại tại %s; không thể cập nhật an toàn", old)
+		if removeErr := os.Remove(old); removeErr != nil {
+			quarantine := fmt.Sprintf("%s.%d", old, time.Now().Unix())
+			if renameErr := os.Rename(old, quarantine); renameErr != nil {
+				return fmt.Errorf("bản sao cũ vẫn tồn tại tại %s và đang bị một tiến trình khác giữ; hãy đóng hết cửa sổ CamLauncher rồi thử lại", old)
+			}
+		}
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("không thể kiểm tra bản sao cũ: %w", err)
 	}

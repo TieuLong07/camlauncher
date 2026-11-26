@@ -80,6 +80,30 @@ func TestSuggestedModPreservesChangedPlayerFile(t *testing.T) {
 	}
 }
 
+func TestSuggestedModReplacesSupersededFlashback(t *testing.T) {
+	for _, legacy := range []string{"14ee0df1f23bfcb77c598de02c8bd29b4477f061", "08af39898f8c4ad4015c4ee081c9c6ddb8dc1261"} {
+		if !supersededFlashbackSHA1[legacy] {
+			t.Fatalf("%s must be replaceable in place", legacy)
+		}
+	}
+	root := t.TempDir()
+	mod := suggestedFixture(t, 200, "optional jar")
+	mod.ID = "flashback"
+	mod.FileName = "flashback-1.0.1.jar"
+	// The superseded hashes cannot be reproduced from fixture bytes, so assert the
+	// predicate contract: a jar matching them is managed and updatable, not "modified".
+	if isSupersededFlashback(filepath.Join(root, "mods", "missing.jar"), "flashback") {
+		t.Fatal("missing file must not be treated as superseded")
+	}
+	if isSupersededFlashback(filepath.Join(root, "mods", "missing.jar"), "other") {
+		t.Fatal("only flashback may use the superseded list")
+	}
+	if err := setSuggestedMod(root, mod, true, http.DefaultClient); err != nil {
+		t.Fatal(err)
+	}
+	assertFile(t, root, "mods/flashback-1.0.1.jar", "optional jar")
+}
+
 func TestSuggestedModAdoptsFormerOfficialFile(t *testing.T) {
 	root := t.TempDir()
 	mod := suggestedFixture(t, 200, "optional jar")

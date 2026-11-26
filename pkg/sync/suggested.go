@@ -21,8 +21,8 @@ func SuggestedMods(serverID string) []models.SuggestedMod {
 		ID: "flashback", Name: "Flashback", Version: "1.0.1",
 		Description: "Ghi lại phiên chơi, chỉnh góc máy và xuất video Minecraft.",
 		FileName:    "flashback-1.0.1.jar",
-		URL:         "https://github.com/TieuLong07/camlauncher/releases/download/kamaron-v1.0.0/flashback-1.0.1.jar",
-		SHA1:        "14ee0df1f23bfcb77c598de02c8bd29b4477f061", Size: 204281554,
+		URL:         "https://github.com/TieuLong07/camlauncher/releases/download/kamaron-v1.0.0/flashback-1.0.1-clientfix.jar",
+		SHA1:        "08af39898f8c4ad4015c4ee081c9c6ddb8dc1261", Size: 210169368,
 	}}
 }
 
@@ -69,6 +69,10 @@ func InspectSuggestedMods(root, serverID string) ([]models.SuggestedMod, error) 
 		mod.Installed = err == nil
 		if mod.Installed {
 			mod.Modified = !info.Mode().IsRegular() || !verifySHA1(path, mod.SHA1)
+			if mod.ID == "flashback" && info.Mode().IsRegular() && verifySHA1(path, "14ee0df1f23bfcb77c598de02c8bd29b4477f061") {
+				mod.Modified = false
+				mod.Managed = true
+			}
 		}
 		for _, rel := range state.ManagedFiles {
 			if strings.EqualFold(filepath.ToSlash(rel), "mods/"+mod.FileName) {
@@ -105,10 +109,11 @@ func setSuggestedMod(root string, mod models.SuggestedMod, install bool, client 
 	if statErr != nil && !os.IsNotExist(statErr) {
 		return statErr
 	}
-	if statErr == nil && (!info.Mode().IsRegular() || !verifySHA1(path, mod.SHA1)) {
+	oldFlashback := statErr == nil && mod.ID == "flashback" && info.Mode().IsRegular() && verifySHA1(path, "14ee0df1f23bfcb77c598de02c8bd29b4477f061")
+	if statErr == nil && (!info.Mode().IsRegular() || (!verifySHA1(path, mod.SHA1) && !oldFlashback)) {
 		return fmt.Errorf("%s trên máy đã thay đổi; hãy xử lý tệp này trong thư mục mods trước", mod.Name)
 	}
-	if install && os.IsNotExist(statErr) {
+	if install && (os.IsNotExist(statErr) || oldFlashback) {
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 			return err
 		}
@@ -135,6 +140,11 @@ func setSuggestedMod(root string, mod models.SuggestedMod, install bool, client 
 		}
 		if n != mod.Size || !verifySHA1(tmp.Name(), mod.SHA1) {
 			return fmt.Errorf("tệp %s tải về không đúng kích thước hoặc mã băm; vui lòng thử lại", mod.Name)
+		}
+		if oldFlashback {
+			if err := os.Remove(path); err != nil {
+				return err
+			}
 		}
 		if err := os.Rename(tmp.Name(), path); err != nil {
 			return err

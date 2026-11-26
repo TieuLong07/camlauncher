@@ -71,13 +71,13 @@ export function SuggestedMods({ serverId, installed, busy, onChangeMod, showToas
               <p>{mod.description}</p>
               <small>v{mod.version} · {(mod.size / (1024 * 1024)).toFixed(0)} MB · Chỉ phía client</small>
               {mod.modified && <p className="suggested-mods-note">Tệp trên máy khác bản gợi ý. Kiểm tra trong thư mục mods trước khi thay đổi.</p>}
-              {mod.installed && mod.managed && <p className="suggested-mods-note">Bản này từng thuộc modpack cũ. Chọn giữ để dùng sau lần đồng bộ tiếp theo.</p>}
+              {mod.installed && mod.managed && <p className="suggested-mods-note">Bản cũ cần cập nhật để kết nối server không cài Flashback.</p>}
             </div>
             <div className="suggested-mod-actions">
               {changing ? <span className="suggested-mods-note" role="status"><Loader2 size={16} className="animate-spin" /> {pending.install ? 'Đang cài…' : 'Đang gỡ…'}</span>
                 : <>
                   {(!mod.installed || mod.managed) && <button className="cam-button" disabled={disabled} onClick={() => void change(mod, true)} aria-label={`${mod.installed ? 'Giữ' : 'Cài thêm'} ${mod.name}`}>
-                    <Download size={16} /> {mod.installed ? 'Giữ làm mod tùy chỉnh' : 'Cài thêm'}
+                    <Download size={16} /> {mod.installed ? 'Cập nhật mod' : 'Cài thêm'}
                   </button>}
                   {mod.installed && <button className="cam-button" disabled={disabled} onClick={() => void change(mod, false)} aria-label={`Gỡ ${mod.name}`}><Trash2 size={16} /> Gỡ</button>}
                 </>}

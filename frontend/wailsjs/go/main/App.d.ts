@@ -60,6 +60,8 @@ export function GetServerLiveStatus():Promise<models.ServerLiveStatus>;
 
 export function GetSettings():Promise<models.AppSettings>;
 
+export function GetSuggestedMods(arg1:string):Promise<Array<models.SuggestedMod>>;
+
 export function GetSystemStats():Promise<models.SystemStats>;
 
 export function GetTunnelStatus():Promise<tunnel.TunnelStatus>;
@@ -103,6 +105,8 @@ export function SearchMods(arg1:string,arg2:string,arg3:string,arg4:string):Prom
 export function SetActiveAccount(arg1:string):Promise<void>;
 
 export function SetDefaultJavaPath(arg1:string):Promise<void>;
+
+export function SetSuggestedModInstalled(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
 export function StartMicrosoftAuth():Promise<auth.DeviceCodeResult>;
 

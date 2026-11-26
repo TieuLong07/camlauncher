@@ -6,7 +6,7 @@ import {
   AutoSetupEnvironment, CheckEnvironmentSetup, CheckLauncherUpdate, CheckOfficialModpack,
   SyncOfficialModpack, GetAccounts,
   GetActiveAccount, GetAppVersion, GetInstances, GetSystemStats, GetTunnelStatus, KillGame, LaunchGame,
-  OpenInstanceFolder, StartOfficialTunnel, StopTunnel,
+  OpenInstanceFolder, StartOfficialTunnel, StopTunnel, SetSuggestedModInstalled,
 } from '../wailsjs/go/main/App';
 import { models, tunnel } from '../wailsjs/go/models';
 import { EventsOn } from '../wailsjs/runtime/runtime';
@@ -29,7 +29,7 @@ type PackCheck = {
   result?: models.UpdateCheckResult;
 };
 
-type Activity = { kind: 'launch' | 'pack' | 'java'; title: string; label: string };
+type Activity = { kind: 'launch' | 'pack' | 'java' | 'mods'; title: string; label: string };
 
 function getOfficialInstance(instances: models.Instance[], server: RecommendedServerItem) {
   const registered = instances.find((instance) => instance.serverId?.toLowerCase() === server.id);
@@ -210,6 +210,20 @@ export function App() {
     if (fromServer && !loading && !loadError) void checkPack(selectedServer);
   }, [fromServer, selectedServer, loading, loadError]);
 
+  const changeSuggestedMod = async (modID: string, install: boolean) => {
+    if (currentActivity.current || runningTitle) throw new Error('Hãy hoàn tất tác vụ hiện tại và đóng Minecraft trước.');
+    const server = selectedServer;
+    const pending: Activity = { kind: 'mods', title: server.title, label: install ? 'Đang cài mod tùy chỉnh…' : 'Đang gỡ mod tùy chỉnh…' };
+    currentActivity.current = pending;
+    setActivity(pending);
+    try {
+      await SetSuggestedModInstalled(server.id, modID, install);
+      void checkPack(server);
+    } finally {
+      finishActivity();
+    }
+  };
+
   const toggleTunnel = async () => {
     setTunnelBusy(true);
     try {
@@ -326,7 +340,7 @@ export function App() {
               tunnelStatus={tunnelStatus} tunnelBusy={tunnelBusy || activity?.kind === 'launch'}
               onToggleTunnel={toggleTunnel} packStatus={loading ? 'Đang nạp bản cài…' : loadError ? 'Chưa nạp được bản cài' : packStatus}
               checkingPack={pack?.status === 'checking'} onCheckPack={() => checkPack(selectedServer)}
-              installed={Boolean(officialInstance)} busy={Boolean(activity)}
+              installed={Boolean(officialInstance)} busy={Boolean(activity) || Boolean(runningTitle)} onChangeSuggestedMod={changeSuggestedMod}
               needsJava={needsJava} updateResult={pack?.result} showToast={showToast} />
           )}
           {currentTab === 'instances' && (

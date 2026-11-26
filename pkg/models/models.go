@@ -302,6 +302,21 @@ type UpdateCheckResult struct {
 	Manifest          *ServerManifest `json:"manifest,omitempty"`
 }
 
+// SuggestedMod is a pinned, optional client mod offered outside the official pack.
+type SuggestedMod struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Version     string `json:"version"`
+	FileName    string `json:"fileName"`
+	URL         string `json:"url"`
+	SHA1        string `json:"sha1"`
+	Size        int64  `json:"size"`
+	Installed   bool   `json:"installed"`
+	Modified    bool   `json:"modified"`
+	Managed     bool   `json:"managed"`
+}
+
 // LocalSyncState tracks what files are currently managed for this instance
 type LocalSyncState struct {
 	ServerID            string            `json:"serverId"`

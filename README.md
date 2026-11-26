@@ -11,6 +11,7 @@ Minecraft launcher for Windows, built with Go, Wails v2, React 19, and TypeScrip
 - Dynamic loader-version lookup from upstream APIs.
 - Java runtime scan plus portable Java 8, 17, and 21 setup without administrator privileges.
 - Chill Town server status, modpack update checks, and instance sync.
+- Optional Kamaron client mods on the server home, with opt-in installation and removal (Flashback).
 - Cam P2P Tunnel: obtains a short-lived, one-time Tailscale key from a Cloudflare Worker. The launcher contains no reusable Tailscale credential.
 
 ## Requirements
@@ -56,6 +57,12 @@ screenshots and other player data are preserved. Resource packs and shaders
 added by the archive are updated when unchanged by the player. Legacy
 installations without recorded mod hashes perform one baseline sync to establish
 the official versions. The first baseline may require downloading the archive.
+
+Suggested client mods are pinned in `pkg/sync/suggested.go`, separately from the
+official manifest. Publish each JAR before adding its URL, exact filename, size
+and SHA-1 to the catalog. Downloads are verified before installation. Personal
+mods remain outside official sync; players upgrading from Kamaron 1.0.3 can
+choose to keep their formerly official Flashback as an optional mod.
 
 ## Security model for the P2P tunnel
 

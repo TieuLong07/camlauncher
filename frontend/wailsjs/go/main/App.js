@@ -114,6 +114,10 @@ export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }
 
+export function GetSuggestedMods(arg1) {
+  return window['go']['main']['App']['GetSuggestedMods'](arg1);
+}
+
 export function GetSystemStats() {
   return window['go']['main']['App']['GetSystemStats']();
 }
@@ -200,6 +204,10 @@ export function SetActiveAccount(arg1) {
 
 export function SetDefaultJavaPath(arg1) {
   return window['go']['main']['App']['SetDefaultJavaPath'](arg1);
+}
+
+export function SetSuggestedModInstalled(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SetSuggestedModInstalled'](arg1, arg2, arg3);
 }
 
 export function StartMicrosoftAuth() {

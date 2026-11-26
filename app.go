@@ -34,6 +34,7 @@ type App struct {
 	activeCmd    *exec.Cmd
 	cmdMu        sync.Mutex
 	isRunning    bool
+	isStarting   bool
 	msAuthMu     sync.Mutex
 	msAuthCancel context.CancelFunc
 	tunnelMgr    *tunnel.TunnelManager
@@ -980,7 +981,7 @@ func (a *App) InstallFPSBoostPack(instanceID string) (map[string]interface{}, er
 // Game Launch Engine
 func (a *App) LaunchGame(instanceID string) error {
 	a.cmdMu.Lock()
-	if a.isRunning {
+	if a.isRunning || a.isStarting {
 		a.cmdMu.Unlock()
 		return fmt.Errorf("game đang chạy, vui lòng không mở trùng lặp")
 	}
@@ -1014,6 +1015,14 @@ func (a *App) LaunchGame(instanceID string) error {
 	}
 
 	// Java will be automatically verified or downloaded by PrepareAndLaunch
+	a.cmdMu.Lock()
+	if a.isRunning || a.isStarting {
+		a.cmdMu.Unlock()
+		return fmt.Errorf("Minecraft đang chạy hoặc đang khởi động")
+	}
+	a.isStarting = true
+	a.cmdMu.Unlock()
+
 	javaPath := target.JavaPath
 	if javaPath == "" {
 		settings := a.store.GetSettings()
@@ -1047,6 +1056,9 @@ func (a *App) LaunchGame(instanceID string) error {
 		})
 
 		if err != nil {
+			a.cmdMu.Lock()
+			a.isStarting = false
+			a.cmdMu.Unlock()
 			logCallback(models.LogEvent{
 				InstanceID: target.ID,
 				Level:      "ERROR",
@@ -1062,6 +1074,7 @@ func (a *App) LaunchGame(instanceID string) error {
 
 		a.cmdMu.Lock()
 		a.activeCmd = cmd
+		a.isStarting = false
 		a.isRunning = true
 		a.cmdMu.Unlock()
 

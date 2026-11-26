@@ -535,6 +535,38 @@ export namespace models {
 		    return a;
 		}
 	}
+	export class SuggestedMod {
+	    id: string;
+	    name: string;
+	    description: string;
+	    version: string;
+	    fileName: string;
+	    url: string;
+	    sha1: string;
+	    size: number;
+	    installed: boolean;
+	    modified: boolean;
+	    managed: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new SuggestedMod(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.version = source["version"];
+	        this.fileName = source["fileName"];
+	        this.url = source["url"];
+	        this.sha1 = source["sha1"];
+	        this.size = source["size"];
+	        this.installed = source["installed"];
+	        this.modified = source["modified"];
+	        this.managed = source["managed"];
+	    }
+	}
 	export class SystemStats {
 	    cpuModel: string;
 	    cpuCores: number;

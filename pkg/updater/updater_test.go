@@ -23,6 +23,8 @@ func TestPrereleaseOrdering(t *testing.T) {
 		{"0.3.0-beta.2", "0.3.0-beta.1", true},
 		{"0.3.0-beta", "0.3.0", false},
 		{"0.3.1-beta", "0.3.0", true},
+		{"0.5.2-beta", "0.5.1-beta", true},
+		{"0.5.2-beta", "0.5.2-beta", false},
 	}
 	for _, c := range cases {
 		if got := isNewerVersion(c.latest, c.current); got != c.want {

@@ -153,3 +153,29 @@
 .launcher-shell .btn-secondary:hover { border-color: #936b52; }
 .mod-target-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--cam-muted); }
 .mod-target-label select { color-scheme: dark; max-width: min(44vw, 340px); padding: 9px 12px; border: 1px solid var(--cam-border); border-radius: 9px; background: var(--cam-panel); color: var(--cam-text); font-weight: 650; }
+
+/* Optional client mods on the server home. */
+.server-home.has-suggested-mods .server-home-inner { gap: 14px; padding-top: 20px; }
+.server-home.has-suggested-mods .server-hero { min-height: clamp(180px, 24vh, 250px); }
+.suggested-mods { border-top: 1px solid var(--cam-border); padding-top: 18px; }
+.suggested-mods-heading, .suggested-mod-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+.suggested-mods-heading { justify-content: space-between; }
+.suggested-mods-heading h3 { font-size: 17px; font-weight: 800; }
+.suggested-mods-heading > span, .suggested-mod-copy small { color: var(--cam-muted); font-size: 12px; }
+.suggested-mods-intro { color: var(--cam-muted); font-size: 13px; line-height: 1.6; margin-top: 5px; }
+.suggested-mods-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.suggested-mod-row { display: flex; align-items: center; gap: 15px; padding: 15px 0; border-top: 1px solid var(--cam-border); }
+.suggested-mod-icon { flex-shrink: 0; color: var(--cam-orange); }
+.suggested-mod-copy { flex: 1; min-width: 0; }
+.suggested-mod-title h4 { font-size: 15px; font-weight: 800; }
+.suggested-mod-title > span { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--cam-muted); }
+.suggested-mod-title > span.is-ready { color: var(--cam-ready); }
+.suggested-mod-copy > p { font-size: 13px; line-height: 1.6; margin: 3px 0; color: var(--cam-muted); }
+.suggested-mod-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
+.suggested-mods .suggested-mods-note { display: flex; align-items: center; gap: 6px; color: var(--cam-muted); font-size: 12px; line-height: 1.6; margin-top: 7px; }
+.suggested-mods-error { display: flex; align-items: center; gap: 12px; margin-top: 10px; color: #ffc1bd; font-size: 13px; overflow-wrap: anywhere; }
+@media (max-width: 730px) {
+  .suggested-mod-row { flex-wrap: wrap; }
+  .suggested-mod-copy { flex-basis: calc(100% - 45px); }
+  .suggested-mod-actions { width: 100%; padding-left: 41px; justify-content: flex-start; }
+}

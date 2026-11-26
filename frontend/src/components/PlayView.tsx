@@ -5,6 +5,7 @@ import { models, tunnel } from '../../wailsjs/go/models';
 import { RECOMMENDED_SERVERS, RecommendedServerItem } from '../data/servers';
 import chillTownBanner from '../assets/images/chill-town-banner.webp';
 import kamaronBanner from '../assets/images/kamaron-banner.webp';
+import { SuggestedMods } from './SuggestedMods';
 
 interface PlayViewProps {
   selectedServer: RecommendedServerItem;
@@ -17,6 +18,7 @@ interface PlayViewProps {
   onCheckPack: () => void;
   installed: boolean;
   busy: boolean;
+  onChangeSuggestedMod: (id: string, install: boolean) => Promise<void>;
   needsJava: boolean;
   updateResult?: models.UpdateCheckResult;
   showToast: (message: string) => void;
@@ -24,7 +26,7 @@ interface PlayViewProps {
 
 export function PlayView({
   selectedServer, onSelectServer, tunnelStatus, tunnelBusy, onToggleTunnel,
-  packStatus, checkingPack, onCheckPack, installed, busy, needsJava, updateResult, showToast,
+  packStatus, checkingPack, onCheckPack, installed, busy, onChangeSuggestedMod, needsJava, updateResult, showToast,
 }: PlayViewProps) {
   const [liveStatus, setLiveStatus] = useState<models.ServerLiveStatus | null>(null);
   const [checkingPing, setCheckingPing] = useState(false);
@@ -90,7 +92,7 @@ export function PlayView({
   };
 
   return (
-    <main className="server-home">
+    <main className={`server-home${isKamaron ? ' has-suggested-mods' : ''}`}>
       <div className="server-home-inner">
         <h1>Máy chủ</h1>
         <div className="server-picker" role="group" aria-label="Chọn máy chủ">
@@ -163,6 +165,9 @@ export function PlayView({
             </div>
           </details>
         )}
+
+        {isKamaron && <SuggestedMods serverId={selectedServer.id} installed={installed} busy={busy || checkingPack}
+          onChangeMod={onChangeSuggestedMod} showToast={showToast} />}
 
         <details className="server-details">
           <summary><ChevronDown size={16} /> Chi tiết kết nối</summary>

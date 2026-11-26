@@ -1,10 +1,10 @@
 {
-  "latestVersion": "0.5.3-beta",
-  "title": "CamLauncher Beta 0.5.3",
-  "changelog": "Sửa Flashback để kết nối server không cài mod; cập nhật Flashback trong mục Mod tùy chỉnh gợi ý.",
-  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.3-beta/CamLauncher.exe",
-  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.3-beta/CamLauncher-Setup-0.5.3-beta.exe",
-  "setupSha256": "79540d474a7d0e433f092e649384ae62e92c1d6bb9d75feb82d93669be892268",
-  "releaseDate": "2026-11-26",
-  "sha256": "592b078e9d84ea05266f4c0c370e8c1a40804b2080d4bc18e9031b49e29cf0f6"
+  "latestVersion": "0.5.4-beta",
+  "title": "CamLauncher Beta 0.5.4",
+  "changelog": "Vá lại Flashback 1.0.1 bằng API chính thức của Forge (acceptMissingOr) để vào được máy chủ không cài mod; thay bản vá 0.5.3 bị lỗi NoSuchFieldError.",
+  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.4-beta/CamLauncher.exe",
+  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.4-beta/CamLauncher-Setup-0.5.4-beta.exe",
+  "setupSha256": "ad26f6b08a4b102c2550bf3ae43f8a61ab7491c213ebc11d177703c38fddf39d",
+  "releaseDate": "2026-11-27",
+  "sha256": "a1b49c545baf2992bc6b855dbc51403e8189031542e9e28044d04c7e7f227737"
 }

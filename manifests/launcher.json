@@ -1,10 +1,10 @@
 {
-  "latestVersion": "0.5.1-beta",
-  "title": "CamLauncher Beta 0.5.1",
-  "changelog": "Hỗ trợ Cam Tunnel cho Kamaron và Chill Town; hiển thị đúng cổng cục bộ, kiểm tra kết nối tới máy chủ.",
-  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.1-beta/CamLauncher.exe",
-  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.1-beta/CamLauncher-Setup-0.5.1-beta.exe",
-  "setupSha256": "4ef739847f6fde15a1b461708d241104f380423a3c05198b33540988d50188a3",
-  "releaseDate": "2026-11-21",
-  "sha256": "22dc65dfaf41d7aaed09106597cfa8cfcbdabe8c607a9027254b392f391021b4"
+  "latestVersion": "0.5.2-beta",
+  "title": "CamLauncher Beta 0.5.2",
+  "changelog": "Thêm Mod tùy chỉnh gợi ý ngay trang chính Kamaron: tự chọn cài/gỡ Flashback, nhận biết mod đã cài và giữ mod cá nhân khi đồng bộ modpack.",
+  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.2-beta/CamLauncher.exe",
+  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.2-beta/CamLauncher-Setup-0.5.2-beta.exe",
+  "setupSha256": "1cf613aee76f414c8ee765476386e0175d5d8cb89a4f5b1c8fc18d2eb0609dff",
+  "releaseDate": "2026-11-26",
+  "sha256": "61db7e41508c970b67ec82c1391e08561bfa85914c0b44e5d1224b68e514838b"
 }

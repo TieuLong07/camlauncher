@@ -1,10 +1,10 @@
 {
-  "latestVersion": "0.5.5-beta",
-  "title": "CamLauncher Beta 0.5.5",
-  "changelog": "Sửa lỗi cập nhật bị kẹt khi còn tệp CamLauncher.exe.old; vẫn giữ Flashback 1.0.1 đã vá để vào máy chủ Kamaron.",
-  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.5-beta/CamLauncher.exe",
-  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.5-beta/CamLauncher-Setup-0.5.5-beta.exe",
-  "setupSha256": "051a1da7469a1a9d9e9ead88a9db827f9e3ad4f03603348f7cea9bf9f9137557",
-  "releaseDate": "2026-11-27",
-  "sha256": "e310939f08bdf291d437387e6c45cfcd581af0064307bb22e9647252e2fa4c1b"
+  "latestVersion": "0.5.6-beta",
+  "title": "CamLauncher Beta 0.5.6",
+  "changelog": "Vá Flashback 1.0.1: bấm ghi hình hoặc mở menu tạm dừng không còn crash (config null + packet custom payload đã bị giải phóng bộ đệm).",
+  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.6-beta/CamLauncher.exe",
+  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.6-beta/CamLauncher-Setup-0.5.6-beta.exe",
+  "setupSha256": "49e70da8b198a2731737b5bf77baa6346c0b3c2e909aeae51230ab4e4bc33aa4",
+  "releaseDate": "2026-11-28",
+  "sha256": "f829073da842acf6d4917ae35d751463eba20b212bbed0bb9e78afaa706658a3"
 }

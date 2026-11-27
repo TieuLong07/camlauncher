@@ -81,7 +81,7 @@ func TestSuggestedModPreservesChangedPlayerFile(t *testing.T) {
 }
 
 func TestSuggestedModReplacesSupersededFlashback(t *testing.T) {
-	for _, legacy := range []string{"14ee0df1f23bfcb77c598de02c8bd29b4477f061", "08af39898f8c4ad4015c4ee081c9c6ddb8dc1261"} {
+	for _, legacy := range []string{"14ee0df1f23bfcb77c598de02c8bd29b4477f061", "08af39898f8c4ad4015c4ee081c9c6ddb8dc1261", "ee6cef75a2561ec7ace681a241afaf06ba17c498"} {
 		if !supersededFlashbackSHA1[legacy] {
 			t.Fatalf("%s must be replaceable in place", legacy)
 		}

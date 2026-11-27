@@ -15,10 +15,12 @@ import (
 // supersededFlashbackSHA1 lists client jars we published or shipped earlier and
 // will replace in place. 14ee0d… is the upstream jar (crashes the client with a
 // channel mismatch); 08af39… is a withdrawn patch whose ABSENT check referenced
-// a field of the wrong type and threw NoSuchFieldError at class init.
+// a field of the wrong type and threw NoSuchFieldError at class init; ee6cef…
+// fixed the channel check but still crashed when the config was not loaded.
 var supersededFlashbackSHA1 = map[string]bool{
 	"14ee0df1f23bfcb77c598de02c8bd29b4477f061": true,
 	"08af39898f8c4ad4015c4ee081c9c6ddb8dc1261": true,
+	"ee6cef75a2561ec7ace681a241afaf06ba17c498": true,
 }
 
 // isSupersededFlashback reports whether the jar on disk is one of the builds we
@@ -44,8 +46,8 @@ func SuggestedMods(serverID string) []models.SuggestedMod {
 		ID: "flashback", Name: "Flashback", Version: "1.0.1",
 		Description: "Ghi lại phiên chơi, chỉnh góc máy và xuất video Minecraft.",
 		FileName:    "flashback-1.0.1.jar",
-		URL:         "https://github.com/TieuLong07/camlauncher/releases/download/kamaron-v1.0.0/flashback-1.0.1-forge-clientfix.jar",
-		SHA1:        "ee6cef75a2561ec7ace681a241afaf06ba17c498", Size: 204244560,
+		URL:         "https://github.com/TieuLong07/camlauncher/releases/download/kamaron-v1.0.0/flashback-1.0.1-forge-clientfix2.jar",
+		SHA1:        "96a0d80013ea424fc264b61f26157cd14526a127", Size: 204277647,
 	}}
 }
 

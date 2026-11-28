@@ -1,10 +1,10 @@
 {
-  "latestVersion": "0.5.6-beta",
-  "title": "CamLauncher Beta 0.5.6",
-  "changelog": "Vá Flashback 1.0.1: bấm ghi hình hoặc mở menu tạm dừng không còn crash (config null + packet custom payload đã bị giải phóng bộ đệm).",
-  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.6-beta/CamLauncher.exe",
-  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.6-beta/CamLauncher-Setup-0.5.6-beta.exe",
-  "setupSha256": "49e70da8b198a2731737b5bf77baa6346c0b3c2e909aeae51230ab4e4bc33aa4",
+  "latestVersion": "0.5.7-beta",
+  "title": "CamLauncher Beta 0.5.7",
+  "changelog": "Flashback 1.0.1: ghi hình không còn crash sau vài giây (packet payload đã bị giải phóng bộ đệm được bỏ qua an toàn).",
+  "downloadUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.7-beta/CamLauncher.exe",
+  "setupUrl": "https://github.com/TieuLong07/camlauncher/releases/download/v0.5.7-beta/CamLauncher-Setup-0.5.7-beta.exe",
+  "setupSha256": "fb5dc0e5bc7464b197ba0f404ef8a63cb874bb1da6fc59ce7452da1729bd5ba5",
   "releaseDate": "2026-11-28",
-  "sha256": "f829073da842acf6d4917ae35d751463eba20b212bbed0bb9e78afaa706658a3"
+  "sha256": "c7684fa597d179f5945434587521592ddd15da549395f49a0dee75eb11b61cf8"
 }
